@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce -d ecommerce"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ecommerce-postgres-data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: ecommerce-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/ecommerce
+      DB_USERNAME: ecommerce
+      DB_PASSWORD: ecommerce
+      DB_POOL_MAX_SIZE: 20
+      DB_POOL_MIN_IDLE: 5
+      TOKEN_EXPIRY_HOURS: 12
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  ecommerce-postgres-data:
