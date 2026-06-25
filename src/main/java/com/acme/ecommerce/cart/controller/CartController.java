@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+/**
+ * Customer cart API. The cart stores product ids and quantities, while each view
+ * reloads live product price, coupon rules, and warehouse inventory.
+ */
 @RestController
 @RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
@@ -38,12 +42,12 @@ public class CartController {
         return cartService.removeItem(CurrentUser.require().userId(), productId);
     }
 
-    @PostMapping("/coupon")
+    @PostMapping({"/coupon", "/coupons"})
     public CartResponse applyCoupon(@Valid @RequestBody ApplyCouponRequest request) {
         return cartService.applyCoupon(CurrentUser.require().userId(), request);
     }
 
-    @DeleteMapping("/coupon")
+    @DeleteMapping({"/coupon", "/coupons"})
     public CartResponse removeCoupon() {
         return cartService.removeCoupon(CurrentUser.require().userId());
     }

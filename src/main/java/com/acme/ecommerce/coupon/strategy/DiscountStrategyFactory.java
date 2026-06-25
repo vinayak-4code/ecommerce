@@ -7,12 +7,12 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class DiscountStrategyFactory {
-    private final PercentageDiscountStrategy percentageDiscountStrategy;
+    private final UpToPercentOffDiscountStrategy upToPercentOffDiscountStrategy;
     private final FlatDiscountStrategy flatDiscountStrategy;
 
     public DiscountStrategy get(DiscountType type) {
         return switch (type) {
-            case PERCENTAGE -> percentageDiscountStrategy;
+            case UPTO_PERCENT_OFF -> upToPercentOffDiscountStrategy;
             case FLAT -> flatDiscountStrategy;
         };
     }

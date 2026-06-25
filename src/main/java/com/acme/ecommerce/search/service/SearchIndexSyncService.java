@@ -77,7 +77,7 @@ public class SearchIndexSyncService {
 
     private boolean isInventoryEvent(DomainEventType eventType) {
         return switch (eventType) {
-            case INVENTORY_ADDED, INVENTORY_ADJUSTED, INVENTORY_RESERVED, INVENTORY_RELEASED -> true;
+            case INVENTORY_ADDED, INVENTORY_ADJUSTED, INVENTORY_RESERVED, INVENTORY_RELEASED, INVENTORY_CONSUMED -> true;
             default -> false;
         };
     }

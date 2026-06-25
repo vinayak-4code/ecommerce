@@ -79,6 +79,12 @@ public class AuthService {
         return issueResponse(userAccount);
     }
 
+
+    @Transactional
+    public void logout(String authorizationHeader) {
+        tokenAuthenticationService.revoke(authorizationHeader);
+    }
+
     private UserAccount createUser(String email, String password, UserRole role) {
         String normalizedEmail = authRequestValidator.normalizeEmail(email);
         if (userAccountRepository.existsByEmailIgnoreCase(normalizedEmail)) {

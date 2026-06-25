@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Seller profile API. Seller signup creates this profile and seller-owned
+ * workflows use it to enforce product, warehouse, and inventory ownership.
+ */
 @RestController
 @RequestMapping("/api/v1/sellers")
 @RequiredArgsConstructor

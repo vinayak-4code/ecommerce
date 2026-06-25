@@ -65,7 +65,7 @@ class CartControllerTest {
     void addCartItemDelegatesUsingCurrentCustomer() throws Exception {
         UUID productId = UUID.randomUUID();
         UUID cartId = UUID.randomUUID();
-        CartResponse response = new CartResponse(cartId, List.of(), null, MoneyUtil.ZERO, MoneyUtil.ZERO, MoneyUtil.ZERO);
+        CartResponse response = new CartResponse(cartId, List.of(), null, false, MoneyUtil.ZERO, MoneyUtil.ZERO, MoneyUtil.ZERO);
         when(cartService.addItem(eq(USER_ID), any(AddCartItemRequest.class))).thenReturn(response);
 
         AddCartItemRequest request = new AddCartItemRequest(productId, 2);

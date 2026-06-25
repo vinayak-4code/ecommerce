@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Public product listing/search API backed by the denormalized search projection.
+ * The projection is stored in PostgreSQL for the demo and can be moved to OpenSearch.
+ */
 @RestController
 @RequestMapping("/api/v1/search/products")
 @RequiredArgsConstructor

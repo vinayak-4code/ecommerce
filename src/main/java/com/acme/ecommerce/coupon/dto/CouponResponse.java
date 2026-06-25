@@ -6,6 +6,7 @@ import com.acme.ecommerce.coupon.enums.DiscountType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 public record CouponResponse(
@@ -15,10 +16,12 @@ public record CouponResponse(
         DiscountType discountType,
         DiscountScope discountScope,
         BigDecimal value,
+        BigDecimal maxDiscountAmount,
         BigDecimal minCartAmount,
-        UUID productId,
         CouponStatus status,
         Instant startsAt,
-        Instant endsAt
+        Instant endsAt,
+        Set<UUID> eligibleCategoryIds,
+        Set<UUID> enrolledProductIds
 ) {
 }

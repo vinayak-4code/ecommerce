@@ -17,6 +17,7 @@ import com.acme.ecommerce.common.exception.ErrorCode;
 import com.acme.ecommerce.coupon.service.CouponService;
 import com.acme.ecommerce.customer.entity.CustomerProfile;
 import com.acme.ecommerce.customer.service.CustomerProfileService;
+import com.acme.ecommerce.inventory.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Customer cart command service.
+ *
+ * <p>The cart keeps a lightweight product/quantity model, while view/order flows
+ * revalidate live price and inventory. Quantity zero removes an item, so removing
+ * the last item leaves a valid empty cart.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -35,6 +43,7 @@ public class CartService {
     private final ProductService productService;
     private final CouponService couponService;
     private final CartPricingService cartPricingService;
+    private final InventoryService inventoryService;
     private final DomainEventPublisher domainEventPublisher;
 
     @Transactional
@@ -43,7 +52,9 @@ public class CartService {
         Cart cart = getOrCreateActiveCart(customerUserId);
         CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), request.productId())
                 .orElseGet(() -> newItem(cart, request.productId()));
-        item.setQuantity(item.getQuantity() + request.quantity());
+        int newQuantity = item.getQuantity() + request.quantity();
+        ensureAvailable(request.productId(), newQuantity);
+        item.setQuantity(newQuantity);
         cartItemRepository.save(item);
         return cartPricingService.price(cart).toResponse();
     }
@@ -56,6 +67,7 @@ public class CartService {
             return cartPricingService.price(cart).toResponse();
         }
         productService.requirePublishedProduct(productId);
+        ensureAvailable(productId, request.quantity());
         CartItem item = cartItemRepository.findByCartIdAndProductId(cart.getId(), productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Cart item not found"));
         item.setQuantity(request.quantity());
@@ -112,6 +124,16 @@ public class CartService {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);
         return cartRepository.findByCustomerProfileIdAndStatus(customer.getId(), CartStatus.ACTIVE)
                 .orElseGet(() -> createCart(customer));
+    }
+
+    private void ensureAvailable(UUID productId, int requestedQuantity) {
+        long available = inventoryService.consolidatedAvailable(productId);
+        if (available <= 0) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_INVENTORY, "Product is out of stock");
+        }
+        if (requestedQuantity > available) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_INVENTORY, "Requested quantity exceeds available inventory");
+        }
     }
 
     private Cart createCart(CustomerProfile customer) {

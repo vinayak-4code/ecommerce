@@ -1,6 +1,5 @@
 package com.acme.ecommerce.inventory;
 
-import com.acme.ecommerce.catalog.entity.Product;
 import com.acme.ecommerce.catalog.service.ProductService;
 import com.acme.ecommerce.common.event.DomainEventPublisher;
 import com.acme.ecommerce.common.exception.BusinessException;
@@ -15,8 +14,6 @@ import com.acme.ecommerce.seller.entity.Warehouse;
 import com.acme.ecommerce.seller.service.WarehouseService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,14 +44,11 @@ class InventoryServiceTest {
     @Mock
     private DomainEventPublisher domainEventPublisher;
 
-    @InjectMocks
-    private InventoryService inventoryService;
-
     @Test
-    void reserveFailsWhenRequestedQuantityExceedsLockedAvailability() {
+    void reserveFailsWhenRequestedQuantityExceedsAvailability() {
+        InventoryService inventoryService = new InventoryService(inventoryItemRepository, reservationRepository, warehouseService, productService, domainEventPublisher);
         UUID productId = UUID.randomUUID();
-        InventoryItem inventoryItem = inventory(productId, UUID.randomUUID(), 1, 0);
-        when(inventoryItemRepository.lockAvailableByProductId(productId)).thenReturn(List.of(inventoryItem));
+        when(inventoryItemRepository.findAvailableByProductId(productId)).thenReturn(List.of());
 
         assertThatThrownBy(() -> inventoryService.reserve(productId, 2, UUID.randomUUID()))
                 .isInstanceOf(BusinessException.class)
@@ -62,12 +56,14 @@ class InventoryServiceTest {
     }
 
     @Test
-    void reserveMovesAvailableQuantityToReservedExactlyOnce() {
+    void reserveUsesConditionalUpdateSoLastUnitCanBeReservedOnce() {
+        InventoryService inventoryService = new InventoryService(inventoryItemRepository, reservationRepository, warehouseService, productService, domainEventPublisher);
         UUID productId = UUID.randomUUID();
         UUID warehouseId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         InventoryItem inventoryItem = inventory(productId, warehouseId, 1, 0);
-        when(inventoryItemRepository.lockAvailableByProductId(productId)).thenReturn(List.of(inventoryItem));
+        when(inventoryItemRepository.findAvailableByProductId(productId)).thenReturn(List.of(inventoryItem));
+        when(inventoryItemRepository.reserveQuantity(productId, warehouseId, 1)).thenReturn(1);
         when(reservationRepository.save(any(InventoryReservation.class))).thenAnswer(invocation -> {
             InventoryReservation reservation = invocation.getArgument(0);
             reservation.setId(UUID.randomUUID());
@@ -77,11 +73,8 @@ class InventoryServiceTest {
         List<InventoryReservationAllocation> allocations = inventoryService.reserve(productId, 1, orderId);
 
         assertThat(allocations).hasSize(1);
-        assertThat(inventoryItem.getAvailableQuantity()).isZero();
-        assertThat(inventoryItem.getReservedQuantity()).isEqualTo(1);
-        ArgumentCaptor<InventoryItem> inventoryCaptor = ArgumentCaptor.forClass(InventoryItem.class);
-        verify(inventoryItemRepository).save(inventoryCaptor.capture());
-        assertThat(inventoryCaptor.getValue().getAvailableQuantity()).isZero();
+        assertThat(allocations.getFirst().warehouseId()).isEqualTo(warehouseId);
+        verify(inventoryItemRepository).reserveQuantity(productId, warehouseId, 1);
         verify(reservationRepository).save(any(InventoryReservation.class));
         verify(domainEventPublisher).publish(eq(productId), eq("Inventory"), any(), any());
     }
@@ -99,13 +92,5 @@ class InventoryServiceTest {
         item.setAvailableQuantity(available);
         item.setReservedQuantity(reserved);
         return item;
-    }
-
-    @SuppressWarnings("unused")
-    private Product product(SellerProfile seller) {
-        Product product = new Product();
-        product.setId(UUID.randomUUID());
-        product.setSellerProfile(seller);
-        return product;
     }
 }

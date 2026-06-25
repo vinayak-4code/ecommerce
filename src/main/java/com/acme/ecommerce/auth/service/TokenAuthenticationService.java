@@ -15,10 +15,18 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Optional;
 
+/**
+ * Issues, validates, and revokes opaque bearer tokens.
+ *
+ * <p>Example token usage: {@code Authorization: Bearer eyJ...}. Tokens are stored
+ * server-side so logout can immediately revoke an active session without JWT
+ * blacklist infrastructure.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class TokenAuthenticationService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String BEARER_PREFIX = "Bearer ";
 
     private final AuthTokenRepository authTokenRepository;
 
@@ -43,6 +51,25 @@ public class TokenAuthenticationService {
                 .filter(authToken -> authToken.isUsableAt(Instant.now()))
                 .map(AuthToken::getUserAccount)
                 .map(user -> new AuthenticatedUser(user.getId(), user.getEmail(), user.getRole()));
+    }
+
+    @Transactional
+    public void revoke(String authorizationHeader) {
+        String token = extractBearerToken(authorizationHeader);
+        if (token == null) {
+            return;
+        }
+        authTokenRepository.findById(token).ifPresent(authToken -> {
+            authToken.setRevoked(true);
+            authTokenRepository.save(authToken);
+        });
+    }
+
+    public String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+            return null;
+        }
+        return authorizationHeader.substring(BEARER_PREFIX.length()).trim();
     }
 
     private String generateToken() {

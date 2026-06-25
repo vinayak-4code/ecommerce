@@ -113,8 +113,8 @@ create table inventory_items (
     id uuid primary key,
     product_id uuid not null,
     warehouse_id uuid not null references warehouses(id),
-    available_quantity integer not null,
-    reserved_quantity integer not null,
+    available_quantity integer not null check (available_quantity >= 0),
+    reserved_quantity integer not null check (reserved_quantity >= 0),
     version bigint not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
@@ -128,7 +128,7 @@ create table inventory_reservations (
     order_id uuid,
     product_id uuid not null,
     warehouse_id uuid not null,
-    quantity integer not null,
+    quantity integer not null check (quantity > 0),
     status varchar(40) not null,
     expires_at timestamp with time zone,
     created_at timestamp with time zone not null
@@ -143,14 +143,36 @@ create table coupons (
     discount_type varchar(40) not null,
     discount_scope varchar(40) not null,
     value numeric(19,2) not null,
+    max_discount_amount numeric(19,2),
     min_cart_amount numeric(19,2),
-    product_id uuid,
     status varchar(40) not null,
-    starts_at timestamp with time zone,
-    ends_at timestamp with time zone,
+    starts_at timestamp with time zone not null,
+    ends_at timestamp with time zone not null,
     created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null,
     constraint uk_coupon_code unique (code)
 );
+
+create table coupon_category_eligibilities (
+    id uuid primary key,
+    coupon_id uuid not null references coupons(id),
+    category_id uuid not null references categories(id),
+    constraint uk_coupon_category unique (coupon_id, category_id)
+);
+create index idx_coupon_category_coupon on coupon_category_eligibilities(coupon_id);
+create index idx_coupon_category_category on coupon_category_eligibilities(category_id);
+
+create table coupon_product_enrollments (
+    id uuid primary key,
+    coupon_id uuid not null references coupons(id),
+    product_id uuid not null references products(id),
+    seller_id uuid not null references seller_profiles(id),
+    created_at timestamp with time zone not null,
+    constraint uk_coupon_product_enrollment unique (coupon_id, product_id)
+);
+create index idx_coupon_product_coupon on coupon_product_enrollments(coupon_id);
+create index idx_coupon_product_product on coupon_product_enrollments(product_id);
+create index idx_coupon_product_seller on coupon_product_enrollments(seller_id);
 
 create table carts (
     id uuid primary key,
@@ -165,8 +187,8 @@ create index idx_cart_customer_status on carts(customer_id, status);
 create table cart_items (
     id uuid primary key,
     cart_id uuid not null references carts(id),
-    product_id uuid not null,
-    quantity integer not null,
+    product_id uuid not null references products(id),
+    quantity integer not null check (quantity >= 0),
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null,
     constraint uk_cart_product unique (cart_id, product_id)
@@ -191,7 +213,7 @@ create index idx_order_status on customer_orders(status);
 create table order_lines (
     id uuid primary key,
     order_id uuid not null references customer_orders(id),
-    product_id uuid not null,
+    product_id uuid not null references products(id),
     product_name varchar(220) not null,
     warehouse_id uuid not null,
     quantity integer not null,

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -20,7 +21,7 @@ public class ProductAttributeValidator {
         List<AttributeValueRequest> safeAttributes = attributes == null ? List.of() : attributes;
         Map<String, CategoryAttributeDefinition> definitionsByCode = definitions.stream()
                 .collect(Collectors.toMap(CategoryAttributeDefinition::getCode, Function.identity()));
-        Set<String> suppliedCodes = safeAttributes.stream().map(AttributeValueRequest::code).collect(Collectors.toSet());
+        Set<String> suppliedCodes = safeAttributes.stream().map(AttributeValueRequest::code).map(this::normalizeCode).collect(Collectors.toSet());
 
         definitions.stream()
                 .filter(CategoryAttributeDefinition::isRequired)
@@ -29,7 +30,7 @@ public class ProductAttributeValidator {
                 .ifPresent(definition -> fail("Missing required attribute: " + definition.getCode()));
 
         for (AttributeValueRequest attribute : safeAttributes) {
-            CategoryAttributeDefinition definition = definitionsByCode.get(attribute.code());
+            CategoryAttributeDefinition definition = definitionsByCode.get(normalizeCode(attribute.code()));
             if (definition == null) {
                 fail("Invalid attribute for category: " + attribute.code());
             }
@@ -55,6 +56,10 @@ public class ProductAttributeValidator {
         } catch (NumberFormatException exception) {
             fail("Attribute " + code + " must be numeric");
         }
+    }
+
+    private String normalizeCode(String code) {
+        return code.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]+", "_");
     }
 
     private void fail(String message) {

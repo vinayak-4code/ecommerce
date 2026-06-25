@@ -23,6 +23,10 @@ import com.acme.ecommerce.order.enums.OrderStatus;
 import com.acme.ecommerce.order.repository.CustomerOrderRepository;
 import com.acme.ecommerce.order.repository.OrderLineRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +58,7 @@ public class OrderService {
         if (pricing.lines().isEmpty()) {
             throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Cannot place order for empty cart");
         }
+        pricing.requireCheckoutReady();
 
         CustomerOrder order = new CustomerOrder();
         order.setOrderNumber(generateOrderNumber());
@@ -72,6 +77,7 @@ public class OrderService {
             lines.addAll(toOrderLines(savedOrder, pricedLine, allocations));
         }
         orderLineRepository.saveAll(lines);
+        inventoryService.consumeByOrderId(savedOrder.getId());
         savedOrder.setStatus(OrderStatus.PLACED);
         CustomerOrder placedOrder = orderRepository.save(savedOrder);
         cartService.markOrderedAndClear(cart);
@@ -92,11 +98,11 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> list(UUID customerUserId) {
+    public Page<OrderResponse> list(UUID customerUserId, int page, int size) {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);
-        return orderRepository.findByCustomerProfileIdOrderByCreatedAtDesc(customer.getId()).stream()
-                .map(order -> toResponse(order, orderLineRepository.findByOrderId(order.getId())))
-                .toList();
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return orderRepository.findByCustomerProfileId(customer.getId(), pageable)
+                .map(order -> toResponse(order, orderLineRepository.findByOrderId(order.getId())));
     }
 
     private List<OrderLine> toOrderLines(CustomerOrder order, CartPricingResult.CartLinePrice pricedLine, List<InventoryReservationAllocation> allocations) {

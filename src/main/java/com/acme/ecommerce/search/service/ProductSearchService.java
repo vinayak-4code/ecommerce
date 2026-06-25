@@ -30,7 +30,7 @@ public class ProductSearchService {
             String sortBy,
             Sort.Direction direction
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(direction, sortBy));
         Page<ProductSearchDocument> documents = repository.search(emptyToNull(query), categoryId, ProductStatus.PUBLISHED, pageable);
         if (attributeFilters == null || attributeFilters.isEmpty()) {
             return documents.map(this::toResponse);

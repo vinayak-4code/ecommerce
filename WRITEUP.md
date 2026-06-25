@@ -1,31 +1,29 @@
-# One-page write-up
+# Engineering Write-up
 
 ## 1. What I asked AI to do, and what I wrote or decided myself
 
-I used AI to accelerate boilerplate generation, endpoint scaffolding, DTO definitions, and test skeletons. I explicitly directed the design toward a Java 21 Spring Boot/Gradle application with enterprise-style package structure, Spring Security, JPA repositories, validation, enums, HikariCP database pooling, Docker image build support, and separate seller/customer authentication flows.
+I used AI as a pair-programming assistant for scaffolding and repetition-heavy code: creating DTOs, repositories, controller shells, test skeletons, README sections, and curl examples. I also used it to sanity-check edge cases around cart discount allocation, role boundaries, and inventory reservation flow.
 
-The key design decisions I made were: keep this as a modular monolith instead of microservices, avoid an API Gateway, use simple Bearer-token authentication instead of JWT/OAuth for the demo, use PostgreSQL as the write source of truth, use an outbox table for domain events, and use a database-backed search projection that can later be replaced by OpenSearch/Elasticsearch.
+The main design decisions were mine. I chose a modular monolith rather than microservices because the assignment is a 3-4 hour take-home and needs to be easy to run and explain. I also chose PostgreSQL as the source of truth, an outbox-style domain event table, and a search projection table that models the Elasticsearch/OpenSearch document shape without requiring another service to run. I decided to make roles explicit: `PRODUCT_ADMIN` owns category/coupon governance, `SELLER` owns products/warehouses/inventory/enrollments, and `CUSTOMER` owns cart/orders.
 
 ## 2. Where I overrode, corrected, or threw away AI output
 
-I rejected the earlier single-main-class style because it did not show enterprise judgment or maintainability. I split the code into controller, service, repository, DTO, entity, enum, validation, mapper, security, exception, and configuration packages.
+The initial AI-style backend was too flat and placed too much in one application class. I replaced it with proper Spring Boot layering: controller, service, repository, entity, DTO, enum, validation, mapper, config, exception, and security packages. I also removed raw string statuses and added enums for roles, product status, coupon status, discount type, discount scope, inventory reasons, reservation status, order status, payment status, fulfillment status, cart status, stock status, and event types.
 
-I also avoided keeping important values as raw strings. Roles, product statuses, warehouse statuses, coupon types, discount scopes, order statuses, payment statuses, fulfillment statuses, event types, and notification channel types are enums.
+I corrected the earlier assumption that sellers should manage categories and coupons. In this version, Product Admin alone can create/update categories, sub-classifications, predefined category attributes, and coupon definitions. I also chose to upsert category attributes rather than delete-and-recreate them, because deleting old definitions can break existing product attribute rows. Sellers can only create products against those predefined attributes and enroll their own products into existing coupons.
 
-I corrected the authentication model so signup/login clearly distinguishes seller and customer. Login now requires the expected role, which avoids ambiguity and protects role-specific flows.
-
-I also replaced simplistic inventory logic with a pessimistic-lock reservation flow so the last available unit cannot be purchased twice.
+I also changed inventory reservation. Instead of relying on an explicit application-level pessimistic lock for normal inventory updates, checkout uses a conditional database update: decrement only when `available_quantity >= requested_quantity`. This keeps the “last item cannot be sold twice” rule at the database write boundary, where PostgreSQL row-level locking and transaction isolation can enforce it.
 
 ## 3. Biggest trade-offs and alternatives considered
 
-The first trade-off was modular monolith versus microservices. A microservice design would look closer to a large e-commerce platform, but it would be too heavy for a take-home demo. The modular monolith keeps deployment simple while preserving clear service boundaries.
+The first trade-off was search. The ideal production design would use Kafka plus Elasticsearch/OpenSearch. I kept PostgreSQL as the source of truth and implemented a denormalized `product_search_documents` projection table instead. The search package is deliberately isolated so the repository can later be replaced with Elasticsearch without changing product, cart, or order code. This keeps the demo runnable with only Docker Compose.
 
-The second trade-off was simple Bearer tokens versus JWT/OAuth. JWT would be more common for stateless services, but opaque persisted tokens are easier to reason about, revoke, test, and explain in a live extension session.
+The second trade-off was authentication. I used simple opaque Bearer tokens stored in the database instead of JWT/OAuth. JWT would be more common at scale, but opaque tokens make logout/revocation simple and visible for a demo. The code still cleanly separates authentication from business services.
 
-The third trade-off was a database-backed search projection versus real OpenSearch. The requirement points toward Elasticsearch/OpenSearch for high-read search, but running and testing that stack would add unnecessary operational overhead for a demo. I isolated the search projection behind a dedicated module so the persistence adapter can be replaced later.
+The third trade-off was coupon flexibility. I implemented a concise model: `FLAT` and `UPTO_PERCENT_OFF`, plus category eligibility and seller product enrollment. This is enough to demonstrate real-world behavior like a product participating in multiple coupons while the cart applies only one. I did not build a full promotion-rule DSL because that would add complexity without improving the core evaluation areas.
 
 ## 4. What is missing or what I would do with another day
 
-With another day I would add Testcontainers-based integration tests against PostgreSQL, replace the local search projection with OpenSearch, add a real Kafka outbox publisher, add refresh-token support, add idempotency keys for order placement, add payment integration boundaries, add shipment and return flows, and add more concurrency integration tests around inventory reservation.
+With another day I would replace the PostgreSQL search projection with a real Elasticsearch/OpenSearch container and a Kafka-backed sync service. I would also add idempotency keys to order placement, a real payment authorization step, order cancellation and reservation release APIs, tax calculation, item-level returns/refunds, admin audit logs, and a notification service for email/SMS/in-app events.
 
-I would also add API documentation using springdoc-openapi and more exhaustive tests around product rollback, product-level coupon allocation, partial fulfillment, and cancellation/refund calculations.
+I would also expand integration tests using Testcontainers for PostgreSQL so the conditional inventory update and Flyway migrations are tested against the same database engine used in Docker. The current tests cover controller wiring and important service rules, but Testcontainers would give stronger confidence for concurrency and migration behavior.

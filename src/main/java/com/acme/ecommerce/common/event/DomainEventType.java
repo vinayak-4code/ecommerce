@@ -1,5 +1,6 @@
 package com.acme.ecommerce.common.event;
 
+/** Stable domain event names persisted to outbox and consumed by projections. */
 public enum DomainEventType {
     PRODUCT_CREATED,
     PRODUCT_UPDATED,
@@ -10,6 +11,9 @@ public enum DomainEventType {
     INVENTORY_ADJUSTED,
     INVENTORY_RESERVED,
     INVENTORY_RELEASED,
+    INVENTORY_CONSUMED,
+    COUPON_CREATED,
+    COUPON_UPDATED,
     CART_COUPON_APPLIED,
     ORDER_CREATED,
     ORDER_CANCELLED

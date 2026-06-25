@@ -8,12 +8,16 @@ import com.acme.ecommerce.seller.entity.SellerProfile;
 import com.acme.ecommerce.seller.entity.Warehouse;
 import com.acme.ecommerce.seller.repository.WarehouseRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
+/** Seller-owned warehouse management service. Warehouse location intelligence is intentionally deferred. */
 @Service
 @RequiredArgsConstructor
 public class WarehouseService {
@@ -36,9 +40,10 @@ public class WarehouseService {
     }
 
     @Transactional(readOnly = true)
-    public List<WarehouseResponse> list(UUID userId) {
+    public Page<WarehouseResponse> list(UUID userId, int page, int size) {
         SellerProfile seller = sellerService.requireByUserId(userId);
-        return warehouseRepository.findBySellerProfileId(seller.getId()).stream().map(this::toResponse).toList();
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "name"));
+        return warehouseRepository.findBySellerProfileId(seller.getId(), pageable).map(this::toResponse);
     }
 
     @Transactional

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -112,7 +113,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductResponse get(UUID productId) {
-        Product product = requireProduct(productId);
+        Product product = requirePublishedProduct(productId);
         return productMapper.toResponse(product, attributeValueRepository.findByProductId(productId));
     }
 
@@ -132,8 +133,9 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<ProductVersionResponse> versions(UUID productId) {
-        requireProduct(productId);
+    public List<ProductVersionResponse> versions(UUID sellerUserId, UUID productId) {
+        SellerProfile seller = sellerService.requireByUserId(sellerUserId);
+        requireSellerProduct(productId, seller.getId());
         return productVersionService.list(productId);
     }
 
@@ -199,7 +201,7 @@ public class ProductService {
 
     private ProductAttributeValue toValue(Product product, List<CategoryAttributeDefinition> definitions, AttributeValueRequest request) {
         CategoryAttributeDefinition definition = definitions.stream()
-                .filter(item -> item.getCode().equals(request.code()))
+                .filter(item -> item.getCode().equals(normalizeCode(request.code())))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.VALIDATION_FAILED, "Attribute not allowed: " + request.code()));
         ProductAttributeValue value = new ProductAttributeValue();
@@ -207,5 +209,9 @@ public class ProductService {
         value.setAttributeDefinition(definition);
         value.setValue(request.value().trim());
         return value;
+    }
+
+    private String normalizeCode(String code) {
+        return code.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]+", "_");
     }
 }

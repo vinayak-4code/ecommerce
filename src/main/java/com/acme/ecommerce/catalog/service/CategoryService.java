@@ -4,21 +4,38 @@ import com.acme.ecommerce.catalog.dto.AttributeDefinitionRequest;
 import com.acme.ecommerce.catalog.dto.AttributeDefinitionResponse;
 import com.acme.ecommerce.catalog.dto.CategoryResponse;
 import com.acme.ecommerce.catalog.dto.CreateCategoryRequest;
+import com.acme.ecommerce.catalog.dto.UpdateCategoryRequest;
 import com.acme.ecommerce.catalog.entity.Category;
 import com.acme.ecommerce.catalog.entity.CategoryAttributeDefinition;
 import com.acme.ecommerce.catalog.mapper.CategoryMapper;
 import com.acme.ecommerce.catalog.repository.CategoryAttributeDefinitionRepository;
 import com.acme.ecommerce.catalog.repository.CategoryRepository;
+import com.acme.ecommerce.common.exception.BusinessException;
 import com.acme.ecommerce.common.exception.DuplicateResourceException;
+import com.acme.ecommerce.common.exception.ErrorCode;
 import com.acme.ecommerce.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Owns category hierarchy and predefined attribute definitions.
+ *
+ * <p>Only PRODUCT_ADMIN reaches write methods through Spring Security. Sellers
+ * can then create products only with attributes that are already defined here.
+ * Example: Mobile Phones may require RAM and Storage while Screen Size is optional.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -39,7 +56,29 @@ public class CategoryService {
             category.setParent(requireCategory(request.parentId()));
         }
         Category saved = categoryRepository.save(category);
-        List<CategoryAttributeDefinition> attributes = saveAttributes(saved, request.attributes());
+        List<CategoryAttributeDefinition> attributes = upsertAttributes(saved, request.attributes());
+        return categoryMapper.toResponse(saved, attributes);
+    }
+
+    @Transactional
+    public CategoryResponse update(UUID categoryId, UpdateCategoryRequest request) {
+        Category category = requireCategory(categoryId);
+        String slug = slugify(request.name());
+        categoryRepository.findBySlug(slug)
+                .filter(existing -> !existing.getId().equals(categoryId))
+                .ifPresent(existing -> {
+                    throw new DuplicateResourceException("Category already exists with slug: " + slug);
+                });
+        Category parent = request.parentId() == null ? null : requireCategory(request.parentId());
+        ensureNoCycle(categoryId, parent);
+        category.setName(request.name().trim());
+        category.setSlug(slug);
+        category.setActive(request.active());
+        category.setParent(parent);
+        Category saved = categoryRepository.save(category);
+        List<CategoryAttributeDefinition> attributes = request.attributes() == null
+                ? attributeDefinitionRepository.findByCategoryId(categoryId)
+                : upsertAttributes(saved, request.attributes());
         return categoryMapper.toResponse(saved, attributes);
     }
 
@@ -55,10 +94,10 @@ public class CategoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<CategoryResponse> list() {
-        return categoryRepository.findByActiveTrueOrderByNameAsc().stream()
-                .map(category -> categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(category.getId())))
-                .toList();
+    public Page<CategoryResponse> list(int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "name"));
+        return categoryRepository.findByActiveTrue(pageable)
+                .map(category -> categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(category.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -73,14 +112,70 @@ public class CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
     }
 
-    private List<CategoryAttributeDefinition> saveAttributes(Category category, List<AttributeDefinitionRequest> attributes) {
-        if (attributes == null || attributes.isEmpty()) {
-            return List.of();
+    @Transactional(readOnly = true)
+    public Set<UUID> categoryAndAncestorIds(UUID categoryId) {
+        Set<UUID> ids = new LinkedHashSet<>();
+        Category current = requireCategory(categoryId);
+        while (current != null) {
+            ids.add(current.getId());
+            current = current.getParent();
         }
-        List<CategoryAttributeDefinition> definitions = attributes.stream()
-                .map(request -> toAttributeDefinition(category, request))
-                .toList();
-        return attributeDefinitionRepository.saveAll(definitions);
+        return ids;
+    }
+
+    private void ensureNoCycle(UUID categoryId, Category proposedParent) {
+        Category current = proposedParent;
+        while (current != null) {
+            if (current.getId().equals(categoryId)) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Category cannot be assigned to itself or its descendant");
+            }
+            current = current.getParent();
+        }
+    }
+
+    private List<CategoryAttributeDefinition> upsertAttributes(Category category, List<AttributeDefinitionRequest> attributes) {
+        if (attributes == null || attributes.isEmpty()) {
+            return attributeDefinitionRepository.findByCategoryId(category.getId());
+        }
+        ensureNoDuplicateCodes(attributes);
+
+        List<CategoryAttributeDefinition> existing = attributeDefinitionRepository.findByCategoryId(category.getId());
+        List<CategoryAttributeDefinition> updatedDefinitions = new ArrayList<>();
+
+        for (AttributeDefinitionRequest request : attributes) {
+            String code = normalizeCode(request.code());
+            CategoryAttributeDefinition definition = existing.stream()
+                    .filter(candidate -> candidate.getCode().equals(code))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        CategoryAttributeDefinition created = new CategoryAttributeDefinition();
+                        created.setCategory(category);
+                        created.setCode(code);
+                        return created;
+                    });
+            definition.setName(request.name().trim());
+            definition.setAttributeType(request.attributeType());
+            definition.setRequired(request.required());
+            definition.setSearchable(request.searchable());
+            updatedDefinitions.add(definition);
+        }
+
+        attributeDefinitionRepository.saveAll(updatedDefinitions);
+        return attributeDefinitionRepository.findByCategoryId(category.getId());
+    }
+
+    private void ensureNoDuplicateCodes(List<AttributeDefinitionRequest> attributes) {
+        Set<String> codes = new LinkedHashSet<>();
+        List<String> duplicates = new ArrayList<>();
+        for (AttributeDefinitionRequest attribute : attributes) {
+            String code = normalizeCode(attribute.code());
+            if (!codes.add(code)) {
+                duplicates.add(code);
+            }
+        }
+        if (!duplicates.isEmpty()) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Duplicate category attribute codes: " + duplicates);
+        }
     }
 
     private CategoryAttributeDefinition toAttributeDefinition(Category category, AttributeDefinitionRequest request) {

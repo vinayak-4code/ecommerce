@@ -1,261 +1,303 @@
 # Architecture
 
-## Style
+## Architectural style
 
-This project is an enterprise-style modular monolith. It is intentionally not a microservice system and does not include an API Gateway. The goal is to demonstrate clean boundaries, correct business rules, and an easy path to future service extraction.
-
-## Runtime components
+This project is a **modular monolith**. It intentionally avoids an API Gateway and avoids deploying many services for a take-home/demo project. The code is still split by domain packages so that each module has clear ownership and can be extracted later.
 
 ```text
-Client
-  |
-  | HTTP + Authorization: Bearer <token>
-  v
-Spring Boot Application
-  |
-  |-- Auth Module
-  |-- Seller Module
-  |-- Catalog Module
-  |-- Inventory Module
-  |-- Coupon Module
-  |-- Cart Module
-  |-- Order Module
-  |-- Notification Module
-  |-- Search Projection Module
-  |
-  v
-PostgreSQL + HikariCP
+Client / curl / simple Thymeleaf dashboard
+        |
+        v
+Spring Boot API
+        |
+        +-- auth
+        +-- catalog
+        +-- coupon
+        +-- seller
+        +-- inventory
+        +-- cart
+        +-- order
+        +-- search projection
+        |
+        v
+PostgreSQL + Flyway + HikariCP
 ```
 
-## Persistence
+## Role boundaries
 
-PostgreSQL is the source of truth. Flyway owns schema creation and seed data. HikariCP is configured as the connection pool.
+### PRODUCT_ADMIN
 
-For local tests, H2 is used with the `test` profile.
+Owns product-platform governance:
 
-## Security
+- Category creation/update
+- Sub-classification creation/update through `parentId`
+- Predefined category attributes
+- Mandatory/non-mandatory attribute configuration
+- Coupon creation/update
+- Coupon category eligibility
 
-Security uses a simple Bearer token model:
+Product Admin cannot create seller products, manage seller inventory, or place customer orders.
 
-1. Seller or customer signs up.
-2. Password is stored using BCrypt.
-3. A secure random access token is created.
-4. Token is stored in `auth_tokens`.
-5. `TokenAuthenticationFilter` reads `Authorization: Bearer <token>`.
-6. The token maps to `AuthenticatedUser`.
-7. Spring Security enforces role-based endpoint access.
+### SELLER
 
-Roles are represented by enum values:
+Owns seller business data:
 
-```java
-SELLER
-CUSTOMER
+- Seller profile
+- Warehouses
+- Products
+- Product publish/unpublish
+- Inventory updates
+- Coupon product enrollment
+
+Seller cannot manage categories or coupon definitions.
+
+### CUSTOMER
+
+Owns shopping flows:
+
+- Cart add/update/remove/view
+- Coupon apply/remove
+- Order placement
+- Order listing
+
+Customer cannot update catalog governance, seller products, or inventory.
+
+## Main modules
+
+### `auth`
+
+Provides signup/login/logout and server-side Bearer token management.
+
+Key classes:
+
+- `AuthController`
+- `AuthService`
+- `TokenAuthenticationService`
+- `UserAccount`
+- `AuthToken`
+- `UserRole`
+
+Design decision: opaque server-side tokens were chosen over JWT because logout/revocation is straightforward in a demo without token blacklist infrastructure.
+
+### `catalog`
+
+Owns categories, attributes, products, and product version history.
+
+Key classes:
+
+- `CategoryController`
+- `CategoryService`
+- `ProductController`
+- `ProductService`
+- `ProductVersionService`
+- `ProductAttributeValidator`
+
+Category attributes are predefined by Product Admin. Updates are handled as upserts so existing product-linked definitions are not deleted accidentally. Sellers can only submit attributes that exist for the chosen category. Required attributes are enforced before product creation/update.
+
+Product changes publish domain events so the search projection can be updated.
+
+### `coupon`
+
+Owns Product Admin coupon definitions and Seller product enrollment.
+
+Key classes:
+
+- `CouponController`
+- `CouponService`
+- `CouponValidator`
+- `DiscountStrategyFactory`
+- `FlatDiscountStrategy`
+- `UpToPercentOffDiscountStrategy`
+- `CouponProductEnrollment`
+- `CouponCategoryEligibility`
+
+Supported discount types:
+
+- `FLAT`
+- `UPTO_PERCENT_OFF` with required max cap
+
+Important behavior:
+
+- A product can be enrolled in multiple coupons.
+- A cart can apply only one coupon at a time.
+- Discount is applied only to enrolled eligible products.
+- Category restrictions are hierarchy-aware, and category-scoped coupons must explicitly define eligible categories.
+- Cart-level discounts are distributed proportionally across eligible cart lines.
+
+### `seller`
+
+Owns seller profile and warehouse management.
+
+Warehouse configuration is deliberately simple: address and status only. Location-aware fulfillment can be added later.
+
+### `inventory`
+
+Owns warehouse-level inventory and purchase reservations.
+
+Key classes:
+
+- `InventoryController`
+- `InventoryService`
+- `InventoryItem`
+- `InventoryReservation`
+- `InventoryItemRepository`
+
+Inventory rules:
+
+- Quantity `0` is valid.
+- Quantity cannot be negative.
+- Single and bulk absolute updates are available.
+- Purchase reservation uses conditional database updates.
+
+The critical oversell prevention query is conceptually:
+
+```sql
+update inventory_items
+set available_quantity = available_quantity - :quantity,
+    reserved_quantity = reserved_quantity + :quantity
+where product_id = :productId
+  and warehouse_id = :warehouseId
+  and available_quantity >= :quantity;
 ```
 
-## Package boundaries
+Only one concurrent transaction can successfully decrement the last available unit because the database update is atomic and row-level locking happens inside PostgreSQL.
 
-Each module follows a consistent package structure:
+### `cart`
+
+Owns active customer carts.
+
+Key classes:
+
+- `CartController`
+- `CartService`
+- `CartPricingService`
+- `CartPricingResult`
+
+Cart records store only product IDs, quantities, and coupon code. Cart view reloads:
+
+- Current product status
+- Current product price
+- Current consolidated inventory
+- Current coupon rule
+- Current seller enrollment/category eligibility
+
+This keeps cart totals fresh even if product price or inventory changed after the item was added.
+
+### `order`
+
+Owns order placement using Order Header + Order Line model.
+
+Key classes:
+
+- `OrderController`
+- `OrderService`
+- `CustomerOrder`
+- `OrderLine`
+
+Order flow:
+
+1. Load active cart.
+2. Reprice cart from live product/inventory/coupon data.
+3. Require cart checkout readiness.
+4. Create order header.
+5. Reserve inventory per product/warehouse.
+6. Create order lines.
+7. Consume reserved inventory.
+8. Mark order placed.
+9. Clear active cart.
+10. Publish order event.
+
+Order lines store product price, discount, tax, total, and fulfillment status. This supports future item-level cancellation, return, and refund.
+
+### `search`
+
+Owns the product listing/search read model.
+
+The implementation uses `product_search_documents` in PostgreSQL for demo simplicity, but the document shape mirrors the Elasticsearch/OpenSearch projection described in the requirement:
+
+- Product fields
+- Category fields
+- Attributes JSON
+- Status
+- Consolidated inventory
+
+`SearchIndexSyncService` listens to product and inventory domain events and updates the projection.
+
+Future replacement path:
 
 ```text
-controller  - HTTP endpoints only
-dto         - request and response records
-entity      - JPA entities
-enums       - controlled value sets
-repository  - Spring Data CRUD repositories
-service     - business use cases
-validation  - domain validation rules
-mapper      - entity-to-response mapping where useful
+Product/Inventory event -> Kafka -> Elasticsearch Sync Service -> Elasticsearch/OpenSearch index
 ```
 
-## Seller Management
+The controller/service API does not need to change when the repository implementation changes.
 
-The seller module handles:
+### `common`
 
-- seller profile
-- warehouse creation
-- warehouse listing
-- warehouse updates
+Shared infrastructure:
 
-Warehouses are intentionally simple. They contain address/configuration fields but no location-aware routing logic.
+- Security config
+- Current user helper
+- Exception handling
+- Money utilities
+- Domain event envelope
+- Outbox persistence
+- Hikari data source configuration
 
-## Catalog Management
+## Data consistency
 
-The catalog module handles:
+### Source of truth
 
-- category hierarchy
-- category-specific attributes
-- product CRUD
-- publish/unpublish
-- soft delete
-- version history
-- rollback
+PostgreSQL remains the source of truth for:
 
-Product attributes are validated against category definitions. Example: a mobile phone category can require `ram` and `storage`, while a laptop category can require `processor`, `ram`, and `storage`.
+- Products
+- Categories
+- Coupons
+- Inventory
+- Cart
+- Orders
 
-## Product Versioning
+### Search consistency
 
-Every meaningful product change creates a product snapshot in `product_versions`.
+Search is eventually consistent. Product and inventory updates publish events; the projection updates asynchronously inside the demo process. In a production version, the same events would be written to Kafka and consumed by an Elasticsearch/OpenSearch sync service.
 
-The version store keeps the latest 50 versions per product.
+### Events and outbox
 
-Rollback flow:
+Business services publish domain events through `DomainEventPublisher`. Events are saved to `outbox_events`, then also published in-process so projections update during the demo.
 
-1. Load a previous product snapshot.
-2. Validate its attributes against the current category definition.
-3. Apply fields to the product.
-4. Increment product version.
-5. Write a new version snapshot.
-6. Publish a product update event.
+This keeps the code close to an outbox/Kafka design without requiring Kafka for local execution.
 
-## Inventory Management
+## Database pooling
 
-Inventory is maintained at warehouse level using `inventory_items`.
+HikariCP is configured through `spring.datasource.hikari`.
 
-Important fields:
+Default Docker settings:
 
-```text
-product_id
-warehouse_id
-available_quantity
-reserved_quantity
-version
+```yaml
+maximum-pool-size: 20
+minimum-idle: 5
+connection-timeout: 30000
+idle-timeout: 600000
+max-lifetime: 1800000
 ```
 
-Reservation uses pessimistic locking:
+## Pagination
 
-```java
-@Lock(LockModeType.PESSIMISTIC_WRITE)
-```
+Paginated APIs include:
 
-Order placement calls `InventoryService.reserve(...)`. The service locks all available inventory rows for the product, verifies that enough stock exists, decrements available quantity, increments reserved quantity, and creates reservation records in the same transaction.
+- `GET /api/v1/categories`
+- `GET /api/v1/coupons`
+- `GET /api/v1/search/products`
+- `GET /api/v1/orders`
+- `GET /api/v1/sellers/warehouses`
 
-This ensures that when quantity is 1 and two customers try to order simultaneously, only one transaction can reserve that last unit.
+## Future enhancements
 
-## Coupon and Discount Management
-
-Coupon model supports:
-
-- percentage discounts
-- flat discounts
-- cart-level discounts
-- product-level discounts
-
-Discount calculation uses strategy classes:
-
-```text
-DiscountStrategy
-├── PercentageDiscountStrategy
-└── FlatDiscountStrategy
-```
-
-This avoids hardcoding discount logic inside Cart or Order services.
-
-## Cart Management
-
-Cart supports:
-
-- add item
-- update quantity
-- remove item
-- view cart
-- apply coupon
-- remove coupon
-
-Only one coupon can be applied to a cart at a time.
-
-For cart-level coupons, the total discount is proportionally distributed across items:
-
-```text
-item discount = item subtotal / cart subtotal * total cart discount
-```
-
-The final item absorbs rounding remainder so the sum of item discounts always equals the cart-level discount.
-
-## Order Management
-
-The order module uses:
-
-- Order Header: `customer_orders`
-- Order Lines: `order_lines`
-
-This supports item-level fulfillment and future partial cancellation/refund flows.
-
-Order placement flow:
-
-1. Load customer cart.
-2. Price cart and validate coupon.
-3. Create order header.
-4. Reserve inventory per product.
-5. Create order lines per reservation/warehouse allocation.
-6. Mark order as placed.
-7. Mark cart as ordered and clear active cart items.
-8. Publish `ORDER_CREATED` event.
-
-## Events and Outbox
-
-The app persists domain events into `outbox_events`.
-
-Current implementation also publishes Spring application events in-process so the search and notification modules can react immediately during the demo.
-
-Future Kafka integration can be added by creating an outbox publisher that reads pending outbox records and sends them to Kafka topics.
-
-Example event enum values:
-
-```text
-PRODUCT_CREATED
-PRODUCT_UPDATED
-PRODUCT_DELETED
-INVENTORY_ADDED
-INVENTORY_ADJUSTED
-INVENTORY_RESERVED
-INVENTORY_RELEASED
-ORDER_CREATED
-```
-
-## Search Projection
-
-The `product_search_documents` table acts as a local search projection for the demo. It stores denormalized product information:
-
-- product details
-- category information
-- searchable attributes JSON
-- product status
-- consolidated available inventory
-
-`SearchIndexSyncService` listens to product and inventory events and updates the projection.
-
-In production, this module would be replaced with OpenSearch/Elasticsearch by changing only the search adapter/repository implementation.
-
-## Notification Framework
-
-Notification is designed behind a channel abstraction:
-
-```java
-NotificationChannel.send(NotificationMessage message)
-```
-
-Current channels:
-
-- Email
-- SMS
-- In-App
-
-Future channels:
-
-- Push
-- WhatsApp
-- third-party messaging platforms
-
-Business modules publish events; notification consumes events. Business services do not know channel-specific implementation details.
-
-## Testing strategy
-
-The test suite includes:
-
-- controller tests with MockMvc
-- service tests with Mockito
-- validation tests
-- coupon pricing math tests
-- inventory reservation behavior tests
-
-High-value areas are covered first: authentication shape, cart pricing, discount allocation, attribute validation, and inventory oversell prevention logic.
+- Replace search projection repository with real Elasticsearch/OpenSearch.
+- Replace in-process event dispatch with Kafka consumers.
+- Implement payment gateway integration.
+- Add tax calculation service.
+- Add item-level cancellation/return/refund APIs.
+- Add warehouse location-aware inventory and fulfillment selection.
+- Add notification service for email/SMS/in-app messages.
+- Add idempotency keys for order placement.
+- Add admin audit trails and approval workflows for sensitive catalog changes.

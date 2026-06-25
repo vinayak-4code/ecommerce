@@ -7,12 +7,16 @@ import com.acme.ecommerce.seller.dto.WarehouseResponse;
 import com.acme.ecommerce.seller.service.WarehouseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
+/**
+ * Seller warehouse API. The demo keeps warehouse configuration simple while
+ * retaining a clean extension point for future location-aware fulfillment.
+ */
 @RestController
 @RequestMapping("/api/v1/sellers/warehouses")
 @RequiredArgsConstructor
@@ -26,8 +30,11 @@ public class WarehouseController {
     }
 
     @GetMapping
-    public List<WarehouseResponse> list() {
-        return warehouseService.list(CurrentUser.require().userId());
+    public Page<WarehouseResponse> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return warehouseService.list(CurrentUser.require().userId(), page, size);
     }
 
     @PutMapping("/{warehouseId}")

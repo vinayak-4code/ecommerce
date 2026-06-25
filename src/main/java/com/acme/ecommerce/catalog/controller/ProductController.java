@@ -14,6 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Seller product-management API. Products are stored in PostgreSQL as the
+ * source of truth and projected to search after create/update/publish events.
+ */
 @RestController
 @RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
@@ -54,7 +58,7 @@ public class ProductController {
 
     @GetMapping("/{productId}/versions")
     public List<ProductVersionResponse> versions(@PathVariable UUID productId) {
-        return productService.versions(productId);
+        return productService.versions(CurrentUser.require().userId(), productId);
     }
 
     @PostMapping("/{productId}/rollback/{versionNumber}")

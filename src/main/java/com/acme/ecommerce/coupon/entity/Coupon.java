@@ -11,6 +11,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Product-admin configured coupon definition.
+ * Example: ELECTRO10 uses UPTO_PERCENT_OFF, value=10, maxDiscountAmount=500,
+ * and category eligibility limited to Electronics descendants.
+ */
 @Getter
 @Setter
 @Entity
@@ -39,22 +44,30 @@ public class Coupon {
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal value;
 
+    @Column(name = "max_discount_amount", precision = 19, scale = 2)
+    private BigDecimal maxDiscountAmount;
+
     @Column(name = "min_cart_amount", precision = 19, scale = 2)
     private BigDecimal minCartAmount;
-
-    @Column(name = "product_id")
-    private UUID productId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
     private CouponStatus status = CouponStatus.ACTIVE;
 
-    @Column(name = "starts_at")
+    @Column(name = "starts_at", nullable = false)
     private Instant startsAt;
 
-    @Column(name = "ends_at")
+    @Column(name = "ends_at", nullable = false)
     private Instant endsAt;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt = Instant.now();
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

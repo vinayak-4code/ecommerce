@@ -1,32 +1,112 @@
 # E-commerce Enterprise Spring Boot Backend
 
-Enterprise-style e-commerce backend built with Java 21, Spring Boot, Gradle, Spring Security, Spring Data JPA, Flyway, PostgreSQL, HikariCP, Docker, and layered package boundaries.
+Enterprise-style e-commerce backend built with Java 21, Spring Boot, Gradle, PostgreSQL, HikariCP, Flyway, Spring Security, Spring Data JPA, Bean Validation, Thymeleaf, and Docker.
 
-The project intentionally avoids an API Gateway. It exposes a single Spring Boot backend with simple Bearer-token authentication and role-aware signup/login for `SELLER` and `CUSTOMER`.
+The implementation intentionally keeps deployment simple: **no API Gateway** and a single Spring Boot application with clean domain packages. The code is structured like an enterprise modular monolith so the core domains can later be extracted into services if needed.
+
+## Business focus
+
+The project focuses on the areas reviewers are likely to evaluate:
+
+- Product Admin governance for categories, sub-classifications, predefined mandatory/non-mandatory attributes, and coupon configuration.
+- Seller ownership of products, warehouses, inventory, and coupon enrollment.
+- Customer cart, coupon application, live cart validation, and order placement.
+- Carefully handled inventory so the last available unit cannot be purchased twice.
+- Denormalized product search projection that represents the Elasticsearch/OpenSearch read model boundary.
+- Clear README, architecture notes, write-up, tests, and executable curl examples.
 
 ## What is implemented
 
-- Seller signup/login and customer signup/login
-- Simple Bearer token authorization
-- Seller profile and warehouse management
-- Category hierarchy and category-specific attribute definitions
-- Seller-owned product management
-- Product publish/unpublish/delete
-- Product version history with latest-50 retention logic
-- Product rollback from stored version snapshot
-- Warehouse-level inventory management
-- Pessimistic-lock based inventory reservation to prevent overselling
-- Domain events persisted using an outbox table
-- Product search projection table simulating an Elasticsearch/OpenSearch read model
-- Cart add/update/remove/view
-- Coupon apply/remove
-- Percentage and flat discount strategies
-- Product-level and cart-level discount scopes
-- Proportional cart-level discount allocation across items
-- Order Header + Order Line model
-- Notification abstraction for Email, SMS, and In-App
-- Controller and service tests
-- Dockerfile and docker-compose for image build and PostgreSQL runtime
+### Auth and roles
+
+- Simple opaque Bearer-token authorization.
+- Seller signup.
+- Customer signup.
+- Login with explicit role: `PRODUCT_ADMIN`, `SELLER`, or `CUSTOMER`.
+- Logout revokes the server-side token.
+- Seeded Product Admin user for governance APIs.
+
+### Product Admin capabilities
+
+Product Admin, not Seller/Customer, can:
+
+- Create/update categories.
+- Create/update sub-classifications using parent category IDs.
+- Configure predefined category attributes; updates add/change attributes without deleting existing product-linked definitions.
+- Mark attributes as mandatory or optional.
+- Create/update coupons.
+- Restrict coupons to category hierarchies.
+
+### Seller capabilities
+
+Seller can:
+
+- Manage seller-owned warehouses.
+- Create/update/delete/publish/unpublish seller-owned products.
+- Provide only category-defined attributes when creating products.
+- Update single warehouse inventory.
+- Update inventory in bulk.
+- Enroll seller-owned products into Product Admin-created coupons.
+
+### Customer capabilities
+
+Customer can:
+
+- Add/update/remove cart items.
+- View cart with live product price and live inventory status.
+- Apply/remove one coupon at a time.
+- Place orders.
+- List orders with pagination.
+
+### Coupon model
+
+Supported discount types:
+
+- `FLAT`: fixed amount discount, capped by eligible subtotal.
+- `UPTO_PERCENT_OFF`: percentage discount capped by a required positive `maxDiscountAmount`.
+
+Supported scope values:
+
+- `CART`
+- `CATEGORY`
+- `PRODUCT`
+
+Important rules:
+
+- Only one coupon can be applied to a cart at a time.
+- The same product may be enrolled into multiple coupons.
+- A coupon only discounts enrolled products that also satisfy category eligibility.
+- Category eligibility is hierarchy-aware: a coupon on `Electronics` can apply to `Mobile Phones` and `Laptops` products if the seller enrolled those products.
+- Cart-level discounts are allocated proportionally across eligible cart lines for clean order/refund/tax support.
+- Coupons have live and expiry dates.
+- `CATEGORY` scoped coupons must define at least one eligible category.
+
+### Inventory model
+
+- Inventory is stored per product and warehouse.
+- Quantity `0` is valid and means out of stock.
+- Single and bulk inventory update APIs are available.
+- Purchase reservation uses conditional PostgreSQL updates: `available_quantity >= requested_quantity`.
+- Reservation then consumption happens during order placement.
+- This avoids overselling without explicit application-level pessimistic locks on seller stock updates.
+
+### Search model
+
+Product management remains in PostgreSQL as the source of truth. Search uses a denormalized projection table named `product_search_documents`, which simulates the document shape that would be stored in Elasticsearch/OpenSearch.
+
+The projection contains:
+
+- Product details
+- Category information
+- Searchable attributes JSON
+- Product status
+- Consolidated inventory across warehouses
+
+For the demo, using PostgreSQL for this projection keeps the project runnable with only Docker Compose. The architecture leaves a clear `search` package boundary so the repository can be replaced by Elasticsearch/OpenSearch later.
+
+### Removed from current scope
+
+The notification service was removed from the runnable implementation based on the latest scope. It is documented as a future enhancement in `docs/ARCHITECTURE.md`.
 
 ## Technology stack
 
@@ -35,17 +115,15 @@ The project intentionally avoids an API Gateway. It exposes a single Spring Boot
 - Gradle 8.14+
 - Spring Web MVC
 - Spring Security
-- Spring Data JPA
-- Hibernate
+- Spring Data JPA / Hibernate
 - Bean Validation
 - Flyway
 - PostgreSQL
 - HikariCP
 - H2 for tests
+- Thymeleaf demo dashboard
 - JUnit 5, Mockito, Spring MockMvc
-- Docker
-
-Spring Boot's official documentation currently lists 3.5.15 as a stable release line and the Spring Boot Gradle plugin requires Gradle 8.14+ or 9.x. This project uses that stable 3.5.x line for broad ecosystem compatibility.
+- Docker and Docker Compose
 
 ## Package structure
 
@@ -92,10 +170,10 @@ com.acme.ecommerce
 │   └── validation
 ├── customer
 ├── inventory
-├── notification
 ├── order
 ├── search
-└── seller
+├── seller
+└── ui
 ```
 
 ## Run with Docker Compose
@@ -104,13 +182,19 @@ com.acme.ecommerce
 docker compose up --build
 ```
 
-The API will be available at:
+API:
 
 ```text
 http://localhost:8080
 ```
 
-PostgreSQL will be available at:
+Simple reviewer dashboard:
+
+```text
+http://localhost:8080/dashboard
+```
+
+PostgreSQL:
 
 ```text
 localhost:5432
@@ -158,7 +242,7 @@ docker build -t ecommerce-enterprise-springboot:latest .
 
 ## Database pooling
 
-HikariCP is configured in `application.yml`:
+HikariCP is configured in `src/main/resources/application.yml`:
 
 ```yaml
 spring:
@@ -172,165 +256,112 @@ spring:
       max-lifetime: 1800000
 ```
 
-## Auth flow
+## Seeded demo users
 
-### Seller signup
+All seeded users use password:
 
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/sellers/signup \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "email": "seller@example.com",
-    "password": "Password1",
-    "businessName": "Acme Electronics",
-    "contactNumber": "9999999999"
-  }'
+```text
+Password1
 ```
 
-### Customer signup
+| Role | Email |
+|---|---|
+| PRODUCT_ADMIN | `admin@example.com` |
+| SELLER | `seller@example.com` |
+| CUSTOMER | `customer@example.com` |
+
+Seeded product IDs:
+
+| Product | ID | Category |
+|---|---|---|
+| Pixel Demo Phone | `00000000-0000-0000-0000-000000003001` | Mobile Phones |
+| ThinkBook Demo Laptop | `00000000-0000-0000-0000-000000003002` | Laptops |
+| Cotton Demo Shirt | `00000000-0000-0000-0000-000000003003` | Apparel / Men |
+
+Seeded coupons:
+
+| Coupon | Type | Scope | Notes |
+|---|---|---|---|
+| `ELECTRO10` | `UPTO_PERCENT_OFF` | `CATEGORY` | Electronics only, capped at 500 |
+| `FLAT200` | `FLAT` | `CART` | Flat 200 on enrolled products |
+| `APPAREL50` | `FLAT` | `CATEGORY` | Apparel only |
+
+## Curl test script
+
+Detailed class notes are in `docs/CLASS_GUIDE.md`, API samples are in `docs/API.md`, and a full executable curl script is included:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/auth/customers/signup \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "email": "customer@example.com",
-    "password": "Password1",
-    "fullName": "Customer One",
-    "phoneNumber": "8888888888"
-  }'
+./docs/curl-requests.sh
 ```
+
+It demonstrates:
+
+- Login for Product Admin, Seller, and Customer
+- Paginated category listing
+- Product search projection
+- Product Admin category creation
+- Product Admin coupon creation
+- Seller coupon product enrollment
+- Single and bulk inventory update
+- Cart add/view/apply coupon
+- Order placement with inventory reservation and consumption
+- Paginated order listing
+- Logout
+
+## Key API examples
 
 ### Login
-
-Login requires the expected role, so seller/customer identity is explicit:
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{
-    "email": "seller@example.com",
+    "email": "customer@example.com",
     "password": "Password1",
-    "role": "SELLER"
+    "role": "CUSTOMER"
   }'
 ```
 
-Use the returned token:
+### Product search
 
 ```bash
-Authorization: Bearer <accessToken>
+curl 'http://localhost:8080/api/v1/search/products?q=demo&page=0&size=10&attr_ram=8GB'
 ```
 
-## Key APIs
+### Add item to cart
 
-### Seller and warehouse
-
-```text
-GET  /api/v1/sellers/me
-POST /api/v1/sellers/warehouses
-GET  /api/v1/sellers/warehouses
-PUT  /api/v1/sellers/warehouses/{warehouseId}
+```bash
+curl -X POST http://localhost:8080/api/v1/cart/items \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "productId": "00000000-0000-0000-0000-000000003001",
+    "quantity": 1
+  }'
 ```
 
-### Categories
+### Apply coupon
 
-```text
-POST /api/v1/categories
-POST /api/v1/categories/{categoryId}/attributes
-GET  /api/v1/categories
-GET  /api/v1/categories/{categoryId}
+```bash
+curl -X POST http://localhost:8080/api/v1/cart/coupons \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"code":"ELECTRO10"}'
 ```
 
-### Products
+### Place order
 
-```text
-POST   /api/v1/products
-PUT    /api/v1/products/{productId}
-GET    /api/v1/products/{productId}
-PATCH  /api/v1/products/{productId}/publish
-PATCH  /api/v1/products/{productId}/unpublish
-DELETE /api/v1/products/{productId}
-GET    /api/v1/products/{productId}/versions
-POST   /api/v1/products/{productId}/rollback/{versionNumber}
+```bash
+curl -X POST http://localhost:8080/api/v1/orders \
+  -H "Authorization: Bearer $CUSTOMER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"shippingAddress":"Demo Address, Bengaluru"}'
 ```
 
-### Inventory
+## Important trade-offs
 
-```text
-PUT /api/v1/inventory/adjustments
-GET /api/v1/inventory/products/{productId}/warehouses/{warehouseId}
-```
-
-### Search
-
-```text
-GET /api/v1/search/products?q=phone&categoryId=<uuid>&attr_ram=8GB&page=0&size=20&sortBy=price&direction=ASC
-```
-
-### Coupons
-
-```text
-POST /api/v1/coupons
-GET  /api/v1/coupons/{code}
-```
-
-### Cart
-
-```text
-GET    /api/v1/cart
-POST   /api/v1/cart/items
-PUT    /api/v1/cart/items/{productId}
-DELETE /api/v1/cart/items/{productId}
-POST   /api/v1/cart/coupon
-DELETE /api/v1/cart/coupon
-```
-
-### Orders
-
-```text
-POST /api/v1/orders
-GET  /api/v1/orders
-GET  /api/v1/orders/{orderId}
-```
-
-## Design decisions
-
-### 1. Modular monolith, enterprise package boundaries
-
-The code is one deployable Spring Boot application but divided by business capability. Each module has controllers, DTOs, entities, enums, repositories, services, and validators where applicable.
-
-### 2. Simple Bearer token auth
-
-The project avoids OAuth/JWT complexity for the demo. Tokens are random secure values stored in `auth_tokens`. The `TokenAuthenticationFilter` maps `Authorization: Bearer <token>` to a Spring Security principal.
-
-### 3. Role-aware signup/login
-
-Seller and customer signup are separate endpoints. Login requires a `role` field, so a seller cannot accidentally log in through the customer flow.
-
-### 4. Inventory correctness
-
-Inventory reservation uses database pessimistic locks on inventory rows. The service decrements `availableQuantity` and increments `reservedQuantity` in the same transaction, preventing the last unit from being reserved twice.
-
-### 5. Coupon extensibility
-
-Discount calculation uses a strategy factory. Adding a new discount type means implementing a new strategy instead of rewriting cart/order logic.
-
-### 6. Cart-level discount allocation
-
-Cart-level discounts are proportionally distributed across cart items. This prepares the order model for item-level fulfillment, cancellation, refund, and tax calculation.
-
-### 7. Search projection
-
-A database-backed `product_search_documents` projection is included for demo simplicity. The code is isolated behind `SearchIndexSyncService`, so it can be replaced by Spring Data Elasticsearch/OpenSearch later without changing Catalog, Cart, or Order services.
-
-## Suggested evaluation path
-
-1. Read `docs/ARCHITECTURE.md`.
-2. Run `docker compose up --build`.
-3. Signup seller and customer.
-4. Create warehouse.
-5. Create/publish product.
-6. Adjust inventory.
-7. Create coupon.
-8. Add item to cart and apply coupon.
-9. Place order.
-10. Review tests under `src/test/java`.
+- Real Elasticsearch/OpenSearch is not included to keep the demo one-command runnable. The search package and projection table model the ES document boundary.
+- Real Kafka is not included. Domain events are persisted in an outbox table and also published in-process for the search projection.
+- Payment is represented by order/payment statuses, not a real payment gateway.
+- Warehouse location-aware fulfillment is intentionally deferred.
+- Notifications are deferred as a future enhancement.
