@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Requires: curl and jq
 # Run after: docker compose up --build
+# Role-specific Thymeleaf UI is also available after the app starts:
+#   $BASE_URL/admin
+#   $BASE_URL/seller
+#   $BASE_URL/customer
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 PASSWORD="Password1"
 

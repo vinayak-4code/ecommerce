@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.GetMapping;
  */
 @Controller
 public class DashboardController {
+    /**
+     * Renders the entry page linking to Product Admin, Seller, and Customer UI journeys.
+     */
     @GetMapping({"/", "/dashboard"})
     public String dashboard() {
         return "dashboard";

@@ -121,7 +121,7 @@ The notification service was removed from the runnable implementation based on t
 - PostgreSQL
 - HikariCP
 - H2 for tests
-- Thymeleaf demo dashboard
+- Thymeleaf role-based demo UI for Product Admin, Seller, and Customer journeys
 - JUnit 5, Mockito, Spring MockMvc
 - Docker and Docker Compose
 
@@ -188,10 +188,13 @@ API:
 http://localhost:8080
 ```
 
-Simple reviewer dashboard:
+Simple reviewer dashboard and role-specific Thymeleaf journeys:
 
 ```text
 http://localhost:8080/dashboard
+http://localhost:8080/admin
+http://localhost:8080/seller
+http://localhost:8080/customer
 ```
 
 PostgreSQL:
@@ -255,6 +258,27 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 ```
+
+## Thymeleaf UI journeys
+
+The project includes a small UI so reviewers can exercise the backend without Postman:
+
+| Role | URL | Main operations |
+|---|---|---|
+| Product Admin | `/admin` | Login, create category/sub-classification, add predefined mandatory/optional attributes, create/list coupons. |
+| Seller | `/seller` | Login, view seller profile, create warehouse, create product, publish product, set inventory, enroll product into coupon. |
+| Customer | `/customer` | Login, search products, add to cart, apply/remove coupon, validate cart totals/stock, place order, list orders. |
+
+The UI stores the Bearer token in browser local storage and calls the same REST APIs used by `docs/curl-requests.sh`. It is intentionally simple because the assignment is backend-focused. See `docs/THYMELEAF_UI.md`.
+
+## Documentation map
+
+- `docs/API.md`: API examples and representative responses.
+- `docs/curl-requests.sh`: executable curl journey over seeded data.
+- `docs/CLASS_GUIDE.md`: class-by-class responsibility guide.
+- `docs/SERVICE_CONTROLLER_GUIDE.md`: controller/service documentation with examples.
+- `docs/THYMELEAF_UI.md`: role-specific UI journey guide.
+- `docs/ARCHITECTURE.md`: architecture, trade-offs, and follow-up improvements.
 
 ## Seeded demo users
 

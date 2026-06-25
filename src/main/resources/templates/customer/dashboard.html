@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <title>Customer Shopping Journey</title>
+    <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
+    <script defer th:src="@{/js/ecommerce-ui.js}"></script>
+</head>
+<body>
+<header>
+    <span class="badge">/customer</span>
+    <h1>Customer shopping journey</h1>
+    <p>Search the product projection, add items to cart, validate live price/inventory, apply one coupon, and place an order.</p>
+    <nav><a th:href="@{/}">← Back to journey selector</a></nav>
+</header>
+<main>
+    <section class="grid">
+        <article class="panel">
+            <h2>Sign in as Customer</h2>
+            <label>Email</label>
+            <input id="CUSTOMER-email" value="customer@example.com">
+            <label>Password</label>
+            <input id="CUSTOMER-password" type="password" value="Password1">
+            <button onclick="login('CUSTOMER','customer-output')">Login</button>
+            <button class="secondary" onclick="logout('CUSTOMER','customer-output')">Logout</button>
+        </article>
+
+        <article class="panel">
+            <h2>Search products</h2>
+            <label>Search query</label><input id="customer-search-q" value="demo">
+            <label>Category ID, optional</label><input id="customer-search-category-id" placeholder="00000000-0000-0000-0000-000000000100">
+            <button onclick="customerSearch()">Search catalog</button>
+        </article>
+
+        <article class="panel">
+            <h2>Cart</h2>
+            <label>Product ID</label><input id="customer-cart-product-id" value="00000000-0000-0000-0000-000000003001">
+            <label>Quantity</label><input id="customer-cart-quantity" value="1">
+            <button onclick="customerAddToCart()">Add to cart</button>
+            <button class="ghost" onclick="customerViewCart()">View cart with live price/inventory</button>
+            <label>Coupon code</label><input id="customer-coupon-code" value="ELECTRO10">
+            <button onclick="customerApplyCoupon()">Apply coupon</button>
+            <button class="secondary" onclick="customerRemoveCoupon()">Remove coupon</button>
+        </article>
+
+        <article class="panel">
+            <h2>Order</h2>
+            <label>Shipping address</label>
+            <textarea id="customer-shipping-address">Demo Customer, 1 Demo Street, Bengaluru, Karnataka, India - 560001</textarea>
+            <button onclick="customerPlaceOrder()">Place order</button>
+            <button class="ghost" onclick="customerListOrders()">List my orders</button>
+        </article>
+
+        <article class="panel">
+            <h2>Response</h2>
+            <div id="customer-output" class="status">Use the actions above to exercise the customer journey.</div>
+        </article>
+    </section>
+</main>
+</body>
+</html>

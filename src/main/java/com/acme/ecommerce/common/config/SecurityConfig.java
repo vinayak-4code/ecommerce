@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/dashboard", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/dashboard", "/admin", "/seller", "/customer", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers(ApiPaths.AUTH, ApiPaths.ACTUATOR).permitAll()
                         .requestMatchers(HttpMethod.GET, ApiPaths.CATEGORIES, ApiPaths.SEARCH, PRODUCT_DETAILS).permitAll()
 

@@ -11,6 +11,18 @@ All protected APIs use:
 ```http
 Authorization: Bearer <accessToken>
 ```
+## Reviewer UI
+
+The same APIs can be exercised through small Thymeleaf pages:
+
+```text
+/admin     Product Admin category/coupon journey
+/seller    Seller warehouse/product/inventory/coupon enrollment journey
+/customer  Customer search/cart/coupon/order journey
+```
+
+The pages log in through `POST /api/v1/auth/login`, store the Bearer token in browser local storage, and call the REST APIs below.
+
 
 ## Auth
 

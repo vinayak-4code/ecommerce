@@ -2,40 +2,39 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>E-commerce Backend Demo</title>
-    <style>
-        body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 32px; background: #f7f7fb; color: #222; }
-        main { max-width: 980px; margin: auto; }
-        .card { background: white; border: 1px solid #ddd; border-radius: 14px; padding: 22px; margin-bottom: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.04); }
-        code { background: #f1f1f1; padding: 2px 6px; border-radius: 6px; }
-        li { margin: 8px 0; }
-    </style>
+    <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
 </head>
 <body>
+<header>
+    <span class="badge">Spring Boot Enterprise Demo</span>
+    <h1>E-commerce backend reviewer dashboard</h1>
+    <p>This Thymeleaf UI gives three separate journeys over the same REST APIs. Each page signs in with the seeded role and stores the returned Bearer token in browser storage.</p>
+</header>
 <main>
-    <div class="card">
-        <h1>E-commerce Backend Demo</h1>
-        <p>Spring Boot API with Product Admin catalog governance, seller product/inventory ownership, customer cart/order flow, coupon enrollment, and a search projection.</p>
-    </div>
-    <div class="card">
-        <h2>Seeded users</h2>
-        <ul>
-            <li>Product Admin: <code>admin@example.com</code> / <code>Password1</code> / role <code>PRODUCT_ADMIN</code></li>
-            <li>Seller: <code>seller@example.com</code> / <code>Password1</code> / role <code>SELLER</code></li>
-            <li>Customer: <code>customer@example.com</code> / <code>Password1</code> / role <code>CUSTOMER</code></li>
-        </ul>
-    </div>
-    <div class="card">
-        <h2>Reviewer flow</h2>
-        <ol>
-            <li>Login with each role using <code>/api/v1/auth/login</code>.</li>
-            <li>Search products with <code>/api/v1/search/products</code>.</li>
-            <li>Apply one coupon in cart: <code>ELECTRO10</code>, <code>FLAT200</code>, or <code>APPAREL50</code>.</li>
-            <li>Place an order and observe inventory decrement through reservation + consumption.</li>
-        </ol>
-        <p>Use <code>docs/curl-requests.sh</code> for a complete executable curl script.</p>
-    </div>
+    <section class="nav-grid">
+        <a class="nav-card" th:href="@{/admin}">
+            <strong>🛡 Product Admin</strong>
+            <span class="small">Create categories, sub-classifications, mandatory/optional attributes, and coupons.</span>
+        </a>
+        <a class="nav-card" th:href="@{/seller}">
+            <strong>🏬 Seller</strong>
+            <span class="small">Manage warehouses, products, inventory quantity, and product coupon enrollment.</span>
+        </a>
+        <a class="nav-card" th:href="@{/customer}">
+            <strong>🛒 Customer</strong>
+            <span class="small">Search products, add to cart, apply a single coupon, and place orders.</span>
+        </a>
+    </section>
+    <section class="panel" style="margin-top: 20px;">
+        <h2>Seeded credentials</h2>
+        <p class="small">Password for all seeded users: <strong>Password1</strong></p>
+        <pre>{
+  "PRODUCT_ADMIN": "admin@example.com",
+  "SELLER": "seller@example.com",
+  "CUSTOMER": "customer@example.com"
+}</pre>
+    </section>
 </main>
 </body>
 </html>

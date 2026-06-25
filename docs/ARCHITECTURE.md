@@ -5,7 +5,7 @@
 This project is a **modular monolith**. It intentionally avoids an API Gateway and avoids deploying many services for a take-home/demo project. The code is still split by domain packages so that each module has clear ownership and can be extracted later.
 
 ```text
-Client / curl / simple Thymeleaf dashboard
+Client / curl / Thymeleaf role UIs (/admin, /seller, /customer)
         |
         v
 Spring Boot API
@@ -22,6 +22,17 @@ Spring Boot API
         v
 PostgreSQL + Flyway + HikariCP
 ```
+
+
+## Thymeleaf reviewer UI
+
+The UI layer is deliberately thin and has three dedicated base URLs:
+
+- `/admin` renders Product Admin operations.
+- `/seller` renders Seller operations.
+- `/customer` renders the Customer shopping journey.
+
+Each page calls the same REST APIs with a Bearer token stored in browser local storage. The UI does not introduce server-side sessions or bypass role authorization, so the API remains the single source of business behavior.
 
 ## Role boundaries
 
