@@ -14,12 +14,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Product search query service backed by the denormalized search projection.
+ *
+ * <p>The demo stores this projection in PostgreSQL for portability, but the
+ * service boundary mirrors an OpenSearch adapter: text query, category filter,
+ * attribute filters, pagination, and sorting all flow through this class.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductSearchService {
     private final ProductSearchDocumentRepository repository;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Searches published products from the projection using optional text/category/attribute filters.
+     */
     @Transactional(readOnly = true)
     public Page<ProductSearchResponse> search(
             String query,

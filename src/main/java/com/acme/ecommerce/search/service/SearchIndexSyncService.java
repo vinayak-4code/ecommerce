@@ -24,6 +24,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Event-driven search projection updater.
+ *
+ * <p>It consumes in-process domain events in the demo. In a production split,
+ * this class becomes a Kafka consumer that updates OpenSearch documents with
+ * product details, attributes, status, and consolidated inventory.</p>
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,6 +41,9 @@ public class SearchIndexSyncService {
     private final InventoryService inventoryService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Handles product/inventory events and refreshes the affected product document.
+     */
     @EventListener
     @Transactional
     public void onDomainEvent(DomainEventEnvelope event) {
@@ -44,6 +54,9 @@ public class SearchIndexSyncService {
         }
     }
 
+    /**
+     * Rebuilds one product search document from source-of-truth tables.
+     */
     public void syncProduct(UUID productId) {
         productRepository.findById(productId).ifPresent(product -> {
             if (product.getStatus() == ProductStatus.DELETED) {

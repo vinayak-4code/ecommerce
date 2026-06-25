@@ -8,18 +8,19 @@ import com.acme.ecommerce.cart.service.CartService;
 import com.acme.ecommerce.common.money.MoneyUtil;
 import com.acme.ecommerce.common.security.AuthenticatedUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.acme.ecommerce.common.security.TokenAuthenticationFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +43,10 @@ class CartControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
+    private TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    @MockitoBean
     private CartService cartService;
 
     @BeforeEach

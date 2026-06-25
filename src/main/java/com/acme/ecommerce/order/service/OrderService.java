@@ -37,6 +37,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Customer order orchestration service using order header and order line records.
+ *
+ * <p>Order placement re-prices the cart, verifies checkout readiness, reserves
+ * inventory, creates header/line rows, consumes reservations, and clears the cart.
+ * This keeps item-level fulfillment/cancellation/refund extensions possible.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -50,6 +57,9 @@ public class OrderService {
     private final OrderLineRepository orderLineRepository;
     private final DomainEventPublisher domainEventPublisher;
 
+    /**
+     * Places an order from the active cart after live price and stock validation.
+     */
     @Transactional
     public OrderResponse placeOrder(UUID customerUserId, CreateOrderRequest request) {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);
@@ -89,6 +99,9 @@ public class OrderService {
         return toResponse(placedOrder, lines);
     }
 
+    /**
+     * Returns one customer-owned order or rejects access to another customer order.
+     */
     @Transactional(readOnly = true)
     public OrderResponse get(UUID customerUserId, UUID orderId) {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);
@@ -97,6 +110,9 @@ public class OrderService {
         return toResponse(order, orderLineRepository.findByOrderId(order.getId()));
     }
 
+    /**
+     * Lists the current customer orders with pagination.
+     */
     @Transactional(readOnly = true)
     public Page<OrderResponse> list(UUID customerUserId, int page, int size) {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);

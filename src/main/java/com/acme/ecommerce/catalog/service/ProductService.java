@@ -29,6 +29,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Seller product command/query service backed by the transactional catalog.
+ *
+ * <p>Every product write validates seller ownership, category-specific mandatory
+ * attributes, and captures version history. Search is updated through domain
+ * events and the search projection rather than being the source of truth.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -44,6 +51,9 @@ public class ProductService {
     private final ProductVersionService productVersionService;
     private final DomainEventPublisher domainEventPublisher;
 
+    /**
+     * Creates a seller-owned draft product after category attribute validation.
+     */
     @Transactional
     public ProductResponse create(UUID sellerUserId, CreateProductRequest request) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -67,6 +77,9 @@ public class ProductService {
         return productMapper.toResponse(saved, attributes);
     }
 
+    /**
+     * Captures the current version, then updates product fields and attributes.
+     */
     @Transactional
     public ProductResponse update(UUID sellerUserId, UUID productId, UpdateProductRequest request) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -90,16 +103,25 @@ public class ProductService {
         return productMapper.toResponse(saved, attributes);
     }
 
+    /**
+     * Moves a seller-owned product to PUBLISHED and emits a projection sync event.
+     */
     @Transactional
     public ProductResponse publish(UUID sellerUserId, UUID productId) {
         return changeStatus(sellerUserId, productId, ProductStatus.PUBLISHED, DomainEventType.PRODUCT_PUBLISHED);
     }
 
+    /**
+     * Moves a seller-owned product out of purchasable search results.
+     */
     @Transactional
     public ProductResponse unpublish(UUID sellerUserId, UUID productId) {
         return changeStatus(sellerUserId, productId, ProductStatus.UNPUBLISHED, DomainEventType.PRODUCT_UNPUBLISHED);
     }
 
+    /**
+     * Soft-deletes a seller-owned product while preserving history.
+     */
     @Transactional
     public void delete(UUID sellerUserId, UUID productId) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -111,18 +133,27 @@ public class ProductService {
         domainEventPublisher.publish(saved.getId(), AGGREGATE_TYPE, DomainEventType.PRODUCT_DELETED, Map.of("productId", saved.getId()));
     }
 
+    /**
+     * Returns product details from PostgreSQL.
+     */
     @Transactional(readOnly = true)
     public ProductResponse get(UUID productId) {
         Product product = requirePublishedProduct(productId);
         return productMapper.toResponse(product, attributeValueRepository.findByProductId(productId));
     }
 
+    /**
+     * Loads a product entity or raises not-found.
+     */
     @Transactional(readOnly = true)
     public Product requireProduct(UUID productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
     }
 
+    /**
+     * Loads a product and ensures it is published before cart/order use.
+     */
     @Transactional(readOnly = true)
     public Product requirePublishedProduct(UUID productId) {
         Product product = requireProduct(productId);
@@ -132,6 +163,9 @@ public class ProductService {
         return product;
     }
 
+    /**
+     * Lists retained product snapshots for seller audit.
+     */
     @Transactional(readOnly = true)
     public List<ProductVersionResponse> versions(UUID sellerUserId, UUID productId) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -139,6 +173,9 @@ public class ProductService {
         return productVersionService.list(productId);
     }
 
+    /**
+     * Restores product details and attributes from a retained snapshot.
+     */
     @Transactional
     public ProductResponse rollback(UUID sellerUserId, UUID productId, int versionNumber) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);

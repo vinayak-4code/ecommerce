@@ -24,17 +24,26 @@ import java.util.UUID;
 public class CouponController {
     private final CouponService couponService;
 
+    /**
+     * Creates a coupon definition controlled by Product Admin governance.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CouponResponse create(@Valid @RequestBody CreateCouponRequest request) {
         return couponService.create(request);
     }
 
+    /**
+     * Updates coupon dates, status, discount type, limits, and category eligibility.
+     */
     @PutMapping("/{couponId}")
     public CouponResponse update(@PathVariable UUID couponId, @Valid @RequestBody UpdateCouponRequest request) {
         return couponService.update(couponId, request);
     }
 
+    /**
+     * Lists coupons with pagination for Product Admin and seller enrollment screens.
+     */
     @GetMapping
     public Page<CouponResponse> list(
             @RequestParam(defaultValue = "0") int page,
@@ -43,17 +52,26 @@ public class CouponController {
         return couponService.list(page, size);
     }
 
+    /**
+     * Fetches a coupon by code after normalizing input to uppercase.
+     */
     @GetMapping("/{code}")
     public CouponResponse get(@PathVariable String code) {
         return couponService.getByCode(code);
     }
 
+    /**
+     * Allows a seller to enroll one of their products into an existing coupon.
+     */
     @PostMapping("/{code}/products/{productId}/enroll")
     @ResponseStatus(HttpStatus.CREATED)
     public CouponEnrollmentResponse enroll(@PathVariable String code, @PathVariable UUID productId) {
         return couponService.enrollProduct(CurrentUser.require().userId(), code, productId);
     }
 
+    /**
+     * Removes seller product enrollment from the coupon.
+     */
     @DeleteMapping("/{code}/products/{productId}/enroll")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void unenroll(@PathVariable String code, @PathVariable UUID productId) {

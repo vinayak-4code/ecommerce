@@ -22,6 +22,14 @@ import java.util.Optional;
  * server-side so logout can immediately revoke an active session without JWT
  * blacklist infrastructure.</p>
  */
+/**
+ * Token persistence and lookup service for the simple Bearer-auth model.
+ *
+ * <p>Tokens are stored server-side, which keeps logout/revocation simple for the
+ * demo while avoiding JWT key management. Example: controllers receive
+ * Authorization: Bearer token, the filter delegates here, and an AuthenticatedUser
+ * is built when the token is active.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class TokenAuthenticationService {
@@ -33,6 +41,9 @@ public class TokenAuthenticationService {
     @Value("${app.security.token-expiry-hours:12}")
     private long tokenExpiryHours;
 
+    /**
+     * Creates a new random access token with a fixed expiry window.
+     */
     @Transactional
     public AuthToken issueToken(UserAccount userAccount) {
         AuthToken authToken = new AuthToken();
@@ -42,6 +53,9 @@ public class TokenAuthenticationService {
         return authTokenRepository.save(authToken);
     }
 
+    /**
+     * Validates the token, expiry, revocation flag, and account status.
+     */
     @Transactional(readOnly = true)
     public Optional<AuthenticatedUser> authenticate(String token) {
         if (token == null || token.isBlank()) {
@@ -53,6 +67,9 @@ public class TokenAuthenticationService {
                 .map(user -> new AuthenticatedUser(user.getId(), user.getEmail(), user.getRole()));
     }
 
+    /**
+     * Marks a Bearer token as revoked; missing headers are treated as no-op.
+     */
     @Transactional
     public void revoke(String authorizationHeader) {
         String token = extractBearerToken(authorizationHeader);
@@ -65,6 +82,9 @@ public class TokenAuthenticationService {
         });
     }
 
+    /**
+     * Extracts the token value from an Authorization header.
+     */
     public String extractBearerToken(String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
             return null;

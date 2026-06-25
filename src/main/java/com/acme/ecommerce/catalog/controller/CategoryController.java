@@ -25,17 +25,26 @@ import java.util.UUID;
 public class CategoryController {
     private final CategoryService categoryService;
 
+    /**
+     * Creates a category or sub-classification with predefined mandatory/optional attributes.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CategoryResponse create(@Valid @RequestBody CreateCategoryRequest request) {
         return categoryService.create(request);
     }
 
+    /**
+     * Updates category name, parent, active flag, and upserts predefined attribute definitions.
+     */
     @PutMapping("/{categoryId}")
     public CategoryResponse update(@PathVariable UUID categoryId, @Valid @RequestBody UpdateCategoryRequest request) {
         return categoryService.update(categoryId, request);
     }
 
+    /**
+     * Adds one predefined attribute definition to an existing category.
+     */
     @PostMapping("/{categoryId}/attributes")
     @ResponseStatus(HttpStatus.CREATED)
     public AttributeDefinitionResponse addAttribute(
@@ -45,6 +54,9 @@ public class CategoryController {
         return categoryService.addAttribute(categoryId, request);
     }
 
+    /**
+     * Lists categories with pagination for admin screens and customer category filters.
+     */
     @GetMapping
     public Page<CategoryResponse> list(
             @RequestParam(defaultValue = "0") int page,
@@ -53,6 +65,9 @@ public class CategoryController {
         return categoryService.list(page, size);
     }
 
+    /**
+     * Fetches category details including mandatory and optional attributes.
+     */
     @GetMapping("/{categoryId}")
     public CategoryResponse get(@PathVariable UUID categoryId) {
         return categoryService.get(categoryId);

@@ -17,13 +17,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/** Seller-owned warehouse management service. Warehouse location intelligence is intentionally deferred. */
+/**
+ * Seller-owned warehouse management service.
+ *
+ * <p>Warehouses are deliberately simple in the demo: they identify where stock is
+ * stored and who owns it. Location-aware availability can later be added without
+ * changing cart/order APIs.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class WarehouseService {
     private final SellerService sellerService;
     private final WarehouseRepository warehouseRepository;
 
+    /**
+     * Creates a warehouse under the authenticated seller.
+     */
     @Transactional
     public WarehouseResponse create(UUID userId, CreateWarehouseRequest request) {
         SellerProfile seller = sellerService.requireByUserId(userId);
@@ -39,6 +48,9 @@ public class WarehouseService {
         return toResponse(warehouseRepository.save(warehouse));
     }
 
+    /**
+     * Lists warehouses owned by the authenticated seller with bounded pagination.
+     */
     @Transactional(readOnly = true)
     public Page<WarehouseResponse> list(UUID userId, int page, int size) {
         SellerProfile seller = sellerService.requireByUserId(userId);
@@ -46,6 +58,9 @@ public class WarehouseService {
         return warehouseRepository.findBySellerProfileId(seller.getId(), pageable).map(this::toResponse);
     }
 
+    /**
+     * Updates a seller-owned warehouse after ownership validation.
+     */
     @Transactional
     public WarehouseResponse update(UUID userId, UUID warehouseId, UpdateWarehouseRequest request) {
         SellerProfile seller = sellerService.requireByUserId(userId);
@@ -61,6 +76,9 @@ public class WarehouseService {
         return toResponse(warehouseRepository.save(warehouse));
     }
 
+    /**
+     * Loads a warehouse only when it belongs to the authenticated seller.
+     */
     @Transactional(readOnly = true)
     public Warehouse requireSellerWarehouse(UUID userId, UUID warehouseId) {
         SellerProfile seller = sellerService.requireByUserId(userId);

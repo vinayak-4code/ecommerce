@@ -44,6 +44,9 @@ public class CartPricingService {
     private final CouponValidator couponValidator;
     private final InventoryService inventoryService;
 
+    /**
+     * Calculates line totals, stock status, proportional discount allocation, and checkout readiness.
+     */
     @Transactional(readOnly = true)
     public CartPricingResult price(Cart cart) {
         List<CartItem> items = cartItemRepository.findByCartId(cart.getId());

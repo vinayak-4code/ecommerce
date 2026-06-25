@@ -23,12 +23,18 @@ import java.util.UUID;
 public class WarehouseController {
     private final WarehouseService warehouseService;
 
+    /**
+     * Creates a seller-owned warehouse used as the inventory container.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public WarehouseResponse create(@Valid @RequestBody CreateWarehouseRequest request) {
         return warehouseService.create(CurrentUser.require().userId(), request);
     }
 
+    /**
+     * Lists warehouses for the current seller with pagination.
+     */
     @GetMapping
     public Page<WarehouseResponse> list(
             @RequestParam(defaultValue = "0") int page,
@@ -37,6 +43,9 @@ public class WarehouseController {
         return warehouseService.list(CurrentUser.require().userId(), page, size);
     }
 
+    /**
+     * Updates address/status fields for a seller-owned warehouse.
+     */
     @PutMapping("/{warehouseId}")
     public WarehouseResponse update(@PathVariable UUID warehouseId, @Valid @RequestBody UpdateWarehouseRequest request) {
         return warehouseService.update(CurrentUser.require().userId(), warehouseId, request);

@@ -36,6 +36,13 @@ import java.util.UUID;
  * uses conditional update statements ({@code available >= requested}) so the
  * final unit can only be reserved once even under concurrent checkout attempts.</p>
  */
+/**
+ * Warehouse-level inventory service with careful reservation semantics.
+ *
+ * <p>Seller updates set absolute available quantity and accept zero for
+ * out-of-stock. Order placement reserves using a conditional PostgreSQL update
+ * so concurrent buyers cannot purchase the last unit twice.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class InventoryService {
@@ -47,6 +54,9 @@ public class InventoryService {
     private final ProductService productService;
     private final DomainEventPublisher domainEventPublisher;
 
+    /**
+     * Sets absolute inventory for one seller-owned product/warehouse pair.
+     */
     @Transactional
     public InventoryResponse update(UUID sellerUserId, InventoryUpdateRequest request) {
         Warehouse warehouse = warehouseService.requireSellerWarehouse(sellerUserId, request.warehouseId());
@@ -72,6 +82,9 @@ public class InventoryService {
         return toResponse(saved);
     }
 
+    /**
+     * Applies a bounded batch of absolute inventory updates for seller stock imports.
+     */
     @Transactional
     public List<InventoryResponse> bulkUpdate(UUID sellerUserId, BulkInventoryUpdateRequest request) {
         return request.items().stream()
@@ -79,6 +92,9 @@ public class InventoryService {
                 .toList();
     }
 
+    /**
+     * Applies a delta while preventing negative available quantity.
+     */
     @Transactional
     public InventoryResponse adjust(UUID sellerUserId, InventoryAdjustmentRequest request) {
         if (request.quantityChange() == 0) {
@@ -107,6 +123,9 @@ public class InventoryService {
         return toResponse(saved);
     }
 
+    /**
+     * Reads one product/warehouse inventory record.
+     */
     @Transactional(readOnly = true)
     public InventoryResponse getByProductAndWarehouse(UUID productId, UUID warehouseId) {
         InventoryItem inventoryItem = inventoryItemRepository.findByProductIdAndWarehouseId(productId, warehouseId)
@@ -114,6 +133,9 @@ public class InventoryService {
         return toResponse(inventoryItem);
     }
 
+    /**
+     * Reserves requested quantity across warehouses with conditional row updates.
+     */
     @Transactional
     public List<InventoryReservationAllocation> reserve(UUID productId, int quantity, UUID orderId) {
         if (quantity <= 0) {
@@ -149,6 +171,9 @@ public class InventoryService {
         return allocations;
     }
 
+    /**
+     * Converts reservations into consumed inventory after order creation.
+     */
     @Transactional
     public void consumeByOrderId(UUID orderId) {
         List<InventoryReservation> reservations = reservationRepository.findByOrderId(orderId);
@@ -171,6 +196,9 @@ public class InventoryService {
         }
     }
 
+    /**
+     * Releases reservations back to available inventory for failed/cancelled order flows.
+     */
     @Transactional
     public void releaseByOrderId(UUID orderId) {
         List<InventoryReservation> reservations = reservationRepository.findByOrderId(orderId);
@@ -193,6 +221,9 @@ public class InventoryService {
         }
     }
 
+    /**
+     * Sums available quantity across all warehouses for cart/search display.
+     */
     @Transactional(readOnly = true)
     public long consolidatedAvailable(UUID productId) {
         return inventoryItemRepository.sumAvailableByProductId(productId);

@@ -20,6 +20,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Maintains compact product version history for audit and rollback.
+ *
+ * <p>The service stores full JSON snapshots and prunes older rows after the
+ * latest 50 versions per product. Example: seller edits price/attributes, the
+ * previous state is captured before mutation and can be restored later.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class ProductVersionService {
@@ -29,6 +36,9 @@ public class ProductVersionService {
     private final ProductAttributeValueRepository attributeValueRepository;
     private final ObjectMapper objectMapper;
 
+    /**
+     * Persists a full product snapshot and prunes versions beyond the retention limit.
+     */
     @Transactional
     public void capture(Product product, UUID actorUserId) {
         List<ProductAttributeValue> attributes = attributeValueRepository.findByProductId(product.getId());
@@ -42,6 +52,9 @@ public class ProductVersionService {
         enforceRetention(product.getId());
     }
 
+    /**
+     * Lists retained version snapshots for one product.
+     */
     @Transactional(readOnly = true)
     public List<ProductVersionResponse> list(UUID productId) {
         return productVersionRepository.findByProductIdOrderByVersionNumberDesc(productId).stream()
@@ -49,6 +62,9 @@ public class ProductVersionService {
                 .toList();
     }
 
+    /**
+     * Loads and deserializes a specific version snapshot.
+     */
     @Transactional(readOnly = true)
     public ProductSnapshot requireSnapshot(UUID productId, int versionNumber) {
         ProductVersion version = productVersionRepository.findByProductIdAndVersionNumber(productId, versionNumber)
@@ -90,6 +106,9 @@ public class ProductVersionService {
         }
     }
 
+    /**
+     * Full product snapshot used for version history and rollback.
+     */
     public record ProductSnapshot(
             UUID categoryId,
             String name,
@@ -100,6 +119,9 @@ public class ProductVersionService {
             String status,
             Map<String, String> attributes
     ) {
+        /**
+         * Builds a snapshot from the current product entity and attribute values.
+         */
         public static ProductSnapshot from(Product product, List<ProductAttributeValue> attributes) {
             Map<String, String> attributeMap = attributes.stream()
                     .collect(Collectors.toMap(value -> value.getAttributeDefinition().getCode(), ProductAttributeValue::getValue));

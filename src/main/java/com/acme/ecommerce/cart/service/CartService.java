@@ -46,6 +46,9 @@ public class CartService {
     private final InventoryService inventoryService;
     private final DomainEventPublisher domainEventPublisher;
 
+    /**
+     * Adds or increments a cart item after checking the product is published and stock exists.
+     */
     @Transactional
     public CartResponse addItem(UUID customerUserId, AddCartItemRequest request) {
         productService.requirePublishedProduct(request.productId());
@@ -59,6 +62,9 @@ public class CartService {
         return cartPricingService.price(cart).toResponse();
     }
 
+    /**
+     * Changes requested quantity; quantity zero is interpreted as remove item.
+     */
     @Transactional
     public CartResponse updateQuantity(UUID customerUserId, UUID productId, UpdateCartItemQuantityRequest request) {
         Cart cart = getOrCreateActiveCart(customerUserId);
@@ -75,6 +81,9 @@ public class CartService {
         return cartPricingService.price(cart).toResponse();
     }
 
+    /**
+     * Removes one product line from the active customer cart.
+     */
     @Transactional
     public CartResponse removeItem(UUID customerUserId, UUID productId) {
         Cart cart = getOrCreateActiveCart(customerUserId);
@@ -82,12 +91,18 @@ public class CartService {
         return cartPricingService.price(cart).toResponse();
     }
 
+    /**
+     * Returns a freshly priced cart using current product price, coupon, and inventory data.
+     */
     @Transactional
     public CartResponse view(UUID customerUserId) {
         Cart cart = getOrCreateActiveCart(customerUserId);
         return cartPricingService.price(cart).toResponse();
     }
 
+    /**
+     * Applies a normalized coupon code while enforcing the one-coupon-per-cart rule.
+     */
     @Transactional
     public CartResponse applyCoupon(UUID customerUserId, ApplyCouponRequest request) {
         Cart cart = getOrCreateActiveCart(customerUserId);
@@ -104,6 +119,9 @@ public class CartService {
         return response;
     }
 
+    /**
+     * Clears the applied coupon and recalculates totals.
+     */
     @Transactional
     public CartResponse removeCoupon(UUID customerUserId) {
         Cart cart = getOrCreateActiveCart(customerUserId);
@@ -111,6 +129,9 @@ public class CartService {
         return cartPricingService.price(cartRepository.save(cart)).toResponse();
     }
 
+    /**
+     * Marks the cart as ordered and removes lines after successful order creation.
+     */
     @Transactional
     public void markOrderedAndClear(Cart cart) {
         cartItemRepository.deleteByCartId(cart.getId());
@@ -119,6 +140,9 @@ public class CartService {
         cartRepository.save(cart);
     }
 
+    /**
+     * Finds the active cart for the customer or creates one lazily.
+     */
     @Transactional
     public Cart getOrCreateActiveCart(UUID customerUserId) {
         CustomerProfile customer = customerProfileService.requireByUserId(customerUserId);

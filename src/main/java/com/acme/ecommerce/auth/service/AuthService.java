@@ -22,6 +22,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Application service for login, logout, and role-specific account creation.
+ *
+ * <p>It keeps Product Admin, Seller, and Customer identities explicit so the
+ * authorization layer can enforce different catalog, seller, cart, and order
+ * responsibilities. Example: seller signup creates both a UserAccount and a
+ * SellerProfile in the same transaction.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -34,6 +42,9 @@ public class AuthService {
     private final TokenAuthenticationService tokenAuthenticationService;
     private final AuthRequestValidator authRequestValidator;
 
+    /**
+     * Registers a seller account and profile, then issues a Bearer token.
+     */
     @Transactional
     public AuthResponse signupSeller(SellerSignupRequest request) {
         authRequestValidator.validatePassword(request.password());
@@ -48,6 +59,9 @@ public class AuthService {
         return issueResponse(userAccount);
     }
 
+    /**
+     * Registers a customer account and profile, then issues a Bearer token.
+     */
     @Transactional
     public AuthResponse signupCustomer(CustomerSignupRequest request) {
         authRequestValidator.validatePassword(request.password());
@@ -62,6 +76,9 @@ public class AuthService {
         return issueResponse(userAccount);
     }
 
+    /**
+     * Authenticates by email/password/role and rejects cross-role login attempts.
+     */
     @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = authRequestValidator.normalizeEmail(request.email());
@@ -80,6 +97,9 @@ public class AuthService {
     }
 
 
+    /**
+     * Revokes the provided Bearer token so it can no longer authenticate requests.
+     */
     @Transactional
     public void logout(String authorizationHeader) {
         tokenAuthenticationService.revoke(authorizationHeader);

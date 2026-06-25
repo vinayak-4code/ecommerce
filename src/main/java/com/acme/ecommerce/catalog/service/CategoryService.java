@@ -36,6 +36,14 @@ import java.util.UUID;
  * can then create products only with attributes that are already defined here.
  * Example: Mobile Phones may require RAM and Storage while Screen Size is optional.</p>
  */
+/**
+ * Product Admin category service for hierarchical classifications and attributes.
+ *
+ * <p>Categories are intentionally curated by Product Admin instead of sellers.
+ * This keeps product attributes predefined and makes search filters predictable.
+ * Example: Mobile Phones can require RAM and Storage while making Battery
+ * Capacity optional.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -43,6 +51,9 @@ public class CategoryService {
     private final CategoryAttributeDefinitionRepository attributeDefinitionRepository;
     private final CategoryMapper categoryMapper;
 
+    /**
+     * Creates a root category or child classification with optional attribute definitions.
+     */
     @Transactional
     public CategoryResponse create(CreateCategoryRequest request) {
         String slug = slugify(request.name());
@@ -60,6 +71,9 @@ public class CategoryService {
         return categoryMapper.toResponse(saved, attributes);
     }
 
+    /**
+     * Updates category metadata and upserts incoming attribute definitions.
+     */
     @Transactional
     public CategoryResponse update(UUID categoryId, UpdateCategoryRequest request) {
         Category category = requireCategory(categoryId);
@@ -82,6 +96,9 @@ public class CategoryService {
         return categoryMapper.toResponse(saved, attributes);
     }
 
+    /**
+     * Adds a single predefined attribute to an existing category.
+     */
     @Transactional
     public AttributeDefinitionResponse addAttribute(UUID categoryId, AttributeDefinitionRequest request) {
         Category category = requireCategory(categoryId);
@@ -93,6 +110,9 @@ public class CategoryService {
         return categoryMapper.toAttributeResponse(attributeDefinitionRepository.save(attribute));
     }
 
+    /**
+     * Lists categories with bounded pagination.
+     */
     @Transactional(readOnly = true)
     public Page<CategoryResponse> list(int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "name"));
@@ -100,18 +120,27 @@ public class CategoryService {
                 .map(category -> categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(category.getId())));
     }
 
+    /**
+     * Returns one category with its attribute definitions.
+     */
     @Transactional(readOnly = true)
     public CategoryResponse get(UUID categoryId) {
         Category category = requireCategory(categoryId);
         return categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(categoryId));
     }
 
+    /**
+     * Loads a category entity or raises a not-found exception.
+     */
     @Transactional(readOnly = true)
     public Category requireCategory(UUID categoryId) {
         return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
     }
 
+    /**
+     * Returns a category plus its ancestors for category-tree coupon eligibility.
+     */
     @Transactional(readOnly = true)
     public Set<UUID> categoryAndAncestorIds(UUID categoryId) {
         Set<UUID> ids = new LinkedHashSet<>();

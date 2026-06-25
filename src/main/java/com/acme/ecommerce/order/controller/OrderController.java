@@ -22,17 +22,26 @@ import java.util.UUID;
 public class OrderController {
     private final OrderService orderService;
 
+    /**
+     * Converts the active cart into an order after live pricing and inventory reservation.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponse placeOrder(@Valid @RequestBody CreateOrderRequest request) {
         return orderService.placeOrder(CurrentUser.require().userId(), request);
     }
 
+    /**
+     * Returns one customer-owned order using the order header and order line model.
+     */
     @GetMapping("/{orderId}")
     public OrderResponse get(@PathVariable UUID orderId) {
         return orderService.get(CurrentUser.require().userId(), orderId);
     }
 
+    /**
+     * Lists customer orders with pagination sorted by newest first.
+     */
     @GetMapping
     public Page<OrderResponse> list(
             @RequestParam(defaultValue = "0") int page,

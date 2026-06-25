@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class SellerController {
     private final SellerService sellerService;
 
+    /**
+     * Returns the seller profile linked to the current Bearer token.
+     */
     @GetMapping("/me")
     public SellerProfileResponse me() {
         return sellerService.getMyProfile(CurrentUser.require().userId());

@@ -7,13 +7,14 @@ import com.acme.ecommerce.coupon.enums.CouponStatus;
 import com.acme.ecommerce.coupon.enums.DiscountScope;
 import com.acme.ecommerce.coupon.enums.DiscountType;
 import com.acme.ecommerce.coupon.service.CouponService;
+import com.acme.ecommerce.common.security.TokenAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,7 +33,10 @@ class CouponControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
+    private TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    @MockitoBean
     private CouponService couponService;
 
     @Test

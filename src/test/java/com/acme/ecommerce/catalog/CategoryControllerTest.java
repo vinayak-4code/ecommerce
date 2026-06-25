@@ -5,13 +5,14 @@ import com.acme.ecommerce.catalog.dto.CategoryResponse;
 import com.acme.ecommerce.catalog.dto.CreateCategoryRequest;
 import com.acme.ecommerce.catalog.service.CategoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.acme.ecommerce.common.security.TokenAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +32,10 @@ class CategoryControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
+    private TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    @MockitoBean
     private CategoryService categoryService;
 
     @Test

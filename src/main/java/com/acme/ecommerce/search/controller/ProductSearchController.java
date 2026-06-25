@@ -26,6 +26,9 @@ public class ProductSearchController {
 
     private final ProductSearchService productSearchService;
 
+    /**
+     * Searches the denormalized product projection using text, category, attributes, pagination, and sorting.
+     */
     @GetMapping
     public Page<ProductSearchResponse> search(
             @RequestParam(required = false) String q,

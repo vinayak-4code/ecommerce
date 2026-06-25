@@ -6,13 +6,14 @@ import com.acme.ecommerce.auth.dto.SellerSignupRequest;
 import com.acme.ecommerce.auth.enums.UserRole;
 import com.acme.ecommerce.auth.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.acme.ecommerce.common.security.TokenAuthenticationFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,7 +33,10 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
+    private TokenAuthenticationFilter tokenAuthenticationFilter;
+
+    @MockitoBean
     private AuthService authService;
 
     @Test

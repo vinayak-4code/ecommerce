@@ -48,6 +48,13 @@ import java.util.stream.Collectors;
  * Sellers then opt in their own products. During cart pricing only enrolled and
  * category-eligible products can receive the coupon discount.</p>
  */
+/**
+ * Product Admin coupon service plus seller product enrollment support.
+ *
+ * <p>Coupons can be active for a time window, limited to categories, and linked
+ * to seller-enrolled products. Multiple coupons may include the same product,
+ * but CartService allows only one coupon code per cart.</p>
+ */
 @Service
 @RequiredArgsConstructor
 public class CouponService {
@@ -62,6 +69,9 @@ public class CouponService {
     private final CouponValidator couponValidator;
     private final DomainEventPublisher domainEventPublisher;
 
+    /**
+     * Creates a coupon with date window, discount settings, and category eligibility.
+     */
     @Transactional
     public CouponResponse create(CreateCouponRequest request) {
         String code = normalize(request.code());
@@ -78,6 +88,9 @@ public class CouponService {
         return toResponse(saved);
     }
 
+    /**
+     * Replaces coupon configuration and category eligibility in one transaction.
+     */
     @Transactional
     public CouponResponse update(UUID couponId, UpdateCouponRequest request) {
         Coupon coupon = requireById(couponId);
@@ -97,6 +110,9 @@ public class CouponService {
         return toResponse(saved);
     }
 
+    /**
+     * Enrolls a seller-owned product into a coupon if category rules allow it.
+     */
     @Transactional
     public CouponEnrollmentResponse enrollProduct(UUID sellerUserId, String couponCode, UUID productId) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -117,6 +133,9 @@ public class CouponService {
         return toEnrollmentResponse(saved);
     }
 
+    /**
+     * Removes a seller-owned product from a coupon enrollment.
+     */
     @Transactional
     public void unenrollProduct(UUID sellerUserId, String couponCode, UUID productId) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
@@ -128,23 +147,35 @@ public class CouponService {
         enrollmentRepository.deleteByCouponIdAndProductId(coupon.getId(), productId);
     }
 
+    /**
+     * Loads an active coupon by normalized code.
+     */
     @Transactional(readOnly = true)
     public Coupon requireActiveByCode(String code) {
         return couponRepository.findByCodeIgnoreCase(normalize(code))
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
     }
 
+    /**
+     * Returns a coupon read model by code.
+     */
     @Transactional(readOnly = true)
     public CouponResponse getByCode(String code) {
         return toResponse(requireActiveByCode(code));
     }
 
+    /**
+     * Lists coupons with bounded pagination.
+     */
     @Transactional(readOnly = true)
     public Page<CouponResponse> list(int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "code"));
         return couponRepository.findAll(pageable).map(this::toResponse);
     }
 
+    /**
+     * Filters candidate product IDs down to products enrolled in the coupon.
+     */
     @Transactional(readOnly = true)
     public Set<UUID> enrolledProductIds(UUID couponId, Set<UUID> productIds) {
         if (productIds == null || productIds.isEmpty()) {
@@ -153,6 +184,9 @@ public class CouponService {
         return enrollmentRepository.findEnrolledProductIds(couponId, productIds);
     }
 
+    /**
+     * Checks direct category and ancestor category eligibility for a coupon.
+     */
     @Transactional(readOnly = true)
     public boolean isCategoryEligible(Coupon coupon, UUID productCategoryId) {
         Set<UUID> eligibleCategoryIds = categoryIds(coupon.getId());
@@ -163,6 +197,9 @@ public class CouponService {
         return productCategoryAndAncestors.stream().anyMatch(eligibleCategoryIds::contains);
     }
 
+    /**
+     * Normalizes coupon codes to a consistent uppercase format.
+     */
     public String normalize(String code) {
         return code.trim().toUpperCase(Locale.ROOT);
     }
