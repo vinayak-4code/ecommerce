@@ -24,6 +24,15 @@ import java.util.UUID;
 public class InventoryController {
     private final InventoryService inventoryService;
 
+
+    /**
+     * Lists all inventory rows for the authenticated seller.
+     */
+    @GetMapping
+    public List<InventoryResponse> list() {
+        return inventoryService.listForSeller(CurrentUser.require().userId());
+    }
+
     /**
      * Sets absolute available quantity for one product and warehouse; zero is accepted.
      */

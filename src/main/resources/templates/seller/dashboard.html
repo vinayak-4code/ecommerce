@@ -1,120 +1,65 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Seller Portal</title>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Seller Center | VinCommerce</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
-    <script defer th:src="@{/js/ecommerce-ui.js}"></script>
+    <script defer th:src="@{/js/portal.js}"></script>
 </head>
-<body>
-<nav class="top-nav" style="background:#0f766e;">
-    <div class="nav-left"><a th:href="@{/seller}" class="nav-logo">🏬 Seller Portal</a></div>
-    <div class="nav-center" id="seller-nav-links" style="display:none;">
-        <a href="#" onclick="showSection('products');return false;" class="nav-link active">Products</a>
-        <a href="#" onclick="showSection('add-product');return false;" class="nav-link">Add Product</a>
-        <a href="#" onclick="showSection('inventory');return false;" class="nav-link">Inventory</a>
-        <a href="#" onclick="showSection('warehouses');return false;" class="nav-link">Warehouses</a>
-    </div>
-    <div class="nav-right"><span id="seller-nav-user" style="font-size:.85rem;color:rgba(255,255,255,.8);"></span></div>
-</nav>
+<body data-page="seller" onload="initSellerCenter()">
+<div class="workspace seller-workspace">
+    <aside class="sidebar">
+        <a class="brand side-brand" href="/">🏬 Seller Center</a>
+        <div class="side-user"><strong id="seller-business-name">Seller</strong><span id="seller-email">seller</span></div>
+        <button data-section="seller-overview" class="side-link active">Overview</button>
+        <button data-section="seller-profile" class="side-link">Profile</button>
+        <button data-section="seller-products" class="side-link">Products</button>
+        <button data-section="seller-new-product" class="side-link">New Product</button>
+        <button data-section="seller-promotions" class="side-link">Promotions</button>
+        <button data-section="seller-warehouses" class="side-link">Warehouses</button>
+        <button data-section="seller-inventory" class="side-link">Inventory</button>
+        <button data-section="seller-orders" class="side-link">Orders</button>
+        <button class="side-link danger" onclick="logoutRole('SELLER')">Logout</button>
+    </aside>
+    <main class="workspace-main">
+        <header class="workspace-topbar"><div><span class="eyebrow">Seller operations</span><h1 id="seller-title">Overview</h1></div><button class="btn-primary" onclick="showConsoleSection('seller-new-product')">Add product</button></header>
 
-<main class="main-content">
-    <!-- Gate: Login/Signup -->
-    <section id="section-gate" class="page-section active">
-        <div class="auth-gate">
-            <h1>🏬 Seller Portal</h1>
-            <p>Manage your products, inventory and warehouses.</p>
-            <div class="auth-gate-buttons">
-                <button onclick="showSection('login')" class="btn-large">Sign In</button>
-                <button onclick="showSection('signup')" class="btn-large ghost">Create Account</button>
+        <section id="seller-overview" class="console-section active">
+            <div class="stat-grid four"><div class="stat-card"><span>Total products</span><strong id="seller-stat-products">0</strong></div><div class="stat-card"><span>Published</span><strong id="seller-stat-published">0</strong></div><div class="stat-card"><span>Warehouses</span><strong id="seller-stat-warehouses">0</strong></div><div class="stat-card"><span>Open order lines</span><strong id="seller-stat-orders">0</strong></div></div>
+            <div class="two-column"><div class="management-card"><h3>Low stock</h3><div id="seller-low-stock"></div></div><div class="management-card"><h3>Recent order lines</h3><div id="seller-recent-orders"></div></div></div>
+        </section>
+
+        <section id="seller-profile" class="console-section"><div id="seller-profile-card"></div></section>
+
+        <section id="seller-products" class="console-section">
+            <div class="section-title-row"><div><span class="eyebrow">Catalog</span><h2>Your products</h2></div><button onclick="showConsoleSection('seller-new-product');resetProductForm()">New product</button></div>
+            <div class="pill-tabs"><button class="pill-tab active" onclick="setProductTab('ALL',this)">All</button><button class="pill-tab" onclick="setProductTab('DRAFT',this)">Draft</button><button class="pill-tab" onclick="setProductTab('PUBLISHED',this)">Published</button><button class="pill-tab" onclick="setProductTab('UNPUBLISHED',this)">Unpublished</button></div>
+            <div id="seller-product-table"></div>
+        </section>
+
+        <section id="seller-new-product" class="console-section">
+            <div class="form-shell">
+                <div class="section-title-row"><div><span class="eyebrow">Category-driven form</span><h2 id="product-form-title">Create product</h2><p class="muted">Choose a final sub-category. Attributes are generated from Product Admin metadata.</p></div></div>
+                <input type="hidden" id="seller-product-id">
+                <div class="form-grid two"><div class="form-field"><label>Product name</label><input id="product-name" placeholder="Galaxy Demo Phone"></div><div class="form-field"><label>SKU</label><input id="product-sku" placeholder="MOB-GALAXY-01"></div><div class="form-field full"><label>Description</label><textarea id="product-description" placeholder="Short product description"></textarea></div><div class="form-field"><label>Price</label><input id="product-price" type="number" step="0.01" placeholder="49999"></div><div class="form-field"><label>Currency</label><select id="product-currency"><option value="INR">INR</option></select></div><div class="form-field full"><label>Final category</label><select id="product-category" onchange="renderSellerAttributeFields()"></select><span class="field-hint">Parent categories are disabled. Select a final classification.</span></div></div>
+                <div id="seller-dynamic-attributes" class="dynamic-attributes"></div>
+                <label class="check-row"><input id="product-publish-now" type="checkbox"> Publish immediately</label>
+                <div class="inline-actions"><button class="btn-primary" onclick="saveSellerProduct()">Save product</button><button class="btn-ghost" onclick="resetProductForm()">Clear</button></div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Login -->
-    <section id="section-login" class="page-section">
-        <div class="auth-form-container">
-            <h2>Seller Sign In</h2>
-            <div class="form-group"><label>Email</label><input id="SELLER-email" type="email" placeholder="seller@email.com"></div>
-            <div class="form-group"><label>Password</label><input id="SELLER-password" type="password" placeholder="Password"></div>
-            <button onclick="doSellerLogin()" class="btn-full">Sign In</button>
-            <div id="seller-login-output" class="form-message"></div>
-            <p class="auth-switch">Don't have an account? <a href="#" onclick="showSection('signup');return false;">Sign Up</a></p>
-        </div>
-        <p class="credentials-note">Demo: seller@example.com / Password1</p>
-    </section>
+        <section id="seller-promotions" class="console-section"><div class="section-title-row"><div><span class="eyebrow">Coupons</span><h2>Enroll products into promotions</h2><p class="muted">Only your eligible products appear in the enrollment dialog.</p></div></div><div id="seller-promotion-list" class="management-grid"></div></section>
 
-    <!-- Signup -->
-    <section id="section-signup" class="page-section">
-        <div class="auth-form-container">
-            <h2>Create Seller Account</h2>
-            <div class="form-group"><label>Business Name *</label><input id="seller-signup-business" placeholder="Your Business Name"></div>
-            <div class="form-group"><label>Email *</label><input id="seller-signup-email" type="email" placeholder="seller@email.com"></div>
-            <div class="form-group"><label>Password *</label><input id="seller-signup-password" type="password" placeholder="Min 8 characters"></div>
-            <div class="form-group"><label>Contact Number</label><input id="seller-signup-contact" placeholder="Phone number (optional)"></div>
-            <button onclick="doSellerSignup()" class="btn-full">Create Account</button>
-            <div id="seller-signup-output" class="form-message"></div>
-            <p class="auth-switch">Already have an account? <a href="#" onclick="showSection('login');return false;">Sign In</a></p>
-        </div>
-    </section>
+        <section id="seller-warehouses" class="console-section"><div class="section-title-row"><div><span class="eyebrow">Fulfillment</span><h2>Warehouses</h2></div><button onclick="openWarehouseModal()">Create warehouse</button></div><div id="seller-warehouse-list" class="management-grid"></div></section>
 
-    <!-- Products -->
-    <section id="section-products" class="page-section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h1 class="section-title" style="margin:0;">My Products</h1>
-            <div><button onclick="sellerListProducts()">🔄 Refresh</button> <button class="ghost" onclick="showSection('add-product')">➕ Add New</button></div>
-        </div>
-        <div class="panel" style="margin-bottom:16px;"><div class="row">
-            <div class="form-group" style="margin:0;"><label>Product ID for actions</label><input id="seller-product-id-action" placeholder="Product UUID"></div>
-            <div style="display:flex;gap:8px;align-self:flex-end;"><button onclick="sellerPublishProduct()">🚀 Publish</button><button class="ghost" onclick="sellerGetProduct()">View</button></div>
-        </div></div>
-        <div id="seller-products-display"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Click Refresh</div></div></div>
-        <div id="seller-products-output" class="status" style="display:none;margin-top:12px;"></div>
-    </section>
+        <section id="seller-inventory" class="console-section"><div class="section-title-row"><div><span class="eyebrow">Stock</span><h2>Inventory</h2><p class="muted">Quantity 0 is valid and shows the product as out of stock.</p></div></div><div class="management-card"><div class="form-grid three"><div class="form-field"><label>Product</label><select id="inventory-product"></select></div><div class="form-field"><label>Warehouse</label><select id="inventory-warehouse"></select></div><div class="form-field"><label>Quantity</label><input id="inventory-qty" type="number" min="0" value="0"></div></div><button onclick="saveInventoryUpdate()">Update quantity</button></div><div id="seller-inventory-table" style="margin-top:18px"></div></section>
 
-    <!-- Add Product -->
-    <section id="section-add-product" class="page-section">
-        <h1 class="section-title">Add New Product</h1>
-        <div class="form-card">
-            <div class="form-group"><label>Category ID *</label><input id="seller-product-category-id" placeholder="Category UUID"></div>
-            <div class="row"><div class="form-group"><label>Product Name *</label><input id="seller-product-name" placeholder="e.g. Samsung Galaxy S24"></div><div class="form-group"><label>SKU *</label><input id="seller-product-sku" placeholder="Unique SKU code"></div></div>
-            <div class="form-group"><label>Description</label><textarea id="seller-product-description" rows="2" placeholder="Product description"></textarea></div>
-            <div class="form-group"><label>Price (₹) *</label><input id="seller-product-price" type="number" placeholder="e.g. 49999"></div>
-            <div class="form-group"><label>Attributes (JSON)</label><textarea id="seller-product-attributes" rows="3" placeholder='[{"code":"ram","value":"8GB"}]'></textarea></div>
-            <button onclick="sellerCreateProduct()" class="btn-full">Create Product Draft</button>
-            <div id="seller-create-output" class="form-message"></div>
-        </div>
-    </section>
+        <section id="seller-orders" class="console-section"><div class="section-title-row"><div><span class="eyebrow">Fulfillment</span><h2>Customer order lines</h2><p class="muted">You can ship or cancel only lines containing your products.</p></div><button onclick="loadSellerOrders()">Refresh</button></div><div id="seller-orders-table"></div></section>
+    </main>
+</div>
 
-    <!-- Inventory -->
-    <section id="section-inventory" class="page-section">
-        <h1 class="section-title">Update Inventory</h1>
-        <div class="form-card">
-            <div class="form-group"><label>Product ID</label><input id="seller-inventory-product-id" placeholder="Product UUID"></div>
-            <div class="form-group"><label>Warehouse ID</label><input id="seller-inventory-warehouse-id" placeholder="Warehouse UUID"></div>
-            <div class="row"><div class="form-group"><label>Quantity</label><input id="seller-inventory-quantity" type="number" placeholder="5"></div><div class="form-group"><label>Reason</label><select id="seller-inventory-reason"><option value="INITIAL_STOCK">INITIAL_STOCK</option><option value="STOCK_CORRECTION">STOCK_CORRECTION</option><option value="RETURN_RECEIVED">RETURN_RECEIVED</option></select></div></div>
-            <button onclick="sellerInventoryUpdate()">Update Inventory</button>
-            <div id="seller-inventory-output" class="form-message"></div>
-        </div>
-    </section>
-
-    <!-- Warehouses -->
-    <section id="section-warehouses" class="page-section">
-        <h1 class="section-title">Warehouses</h1>
-        <button onclick="sellerWarehouses()" style="margin-bottom:16px;">📋 List Warehouses</button>
-        <div class="form-card">
-            <h3>Create Warehouse</h3>
-            <div class="form-group"><label>Name</label><input id="seller-warehouse-name" placeholder="Warehouse name"></div>
-            <div class="row"><div class="form-group"><label>Code</label><input id="seller-warehouse-code" placeholder="WH-01"></div><div class="form-group"><label>Address</label><input id="seller-warehouse-address" placeholder="Street address"></div></div>
-            <div class="row"><div class="form-group"><label>City</label><input id="seller-warehouse-city" placeholder="City"></div><div class="form-group"><label>State</label><input id="seller-warehouse-state" placeholder="State"></div></div>
-            <div class="row"><div class="form-group"><label>Country</label><input id="seller-warehouse-country" placeholder="Country"></div><div class="form-group"><label>Postal Code</label><input id="seller-warehouse-postal" placeholder="PIN"></div></div>
-            <button onclick="sellerCreateWarehouse()">Create Warehouse</button>
-        </div>
-        <div id="seller-warehouse-output" class="form-message" style="margin-top:12px;"></div>
-    </section>
-</main>
-<div id="SELLER-auth-bar" style="display:none;"></div>
-<footer class="page-footer"><p>Demo: seller@example.com / Password1</p></footer>
+<div id="promotion-modal" class="modal"><div class="modal-card"><button class="modal-x" onclick="closeModal('promotion-modal')">✕</button><h2 id="promotion-modal-title">Enroll products</h2><input type="hidden" id="promotion-code"><div id="promotion-products" class="check-grid vertical"></div><button class="btn-primary btn-full" onclick="savePromotionEnrollment()">Save enrollment</button></div></div>
+<div id="warehouse-modal" class="modal"><div class="modal-card"><button class="modal-x" onclick="closeModal('warehouse-modal')">✕</button><h2 id="warehouse-modal-title">Create warehouse</h2><input type="hidden" id="warehouse-id"><div class="form-grid two"><div class="form-field"><label>Name</label><input id="warehouse-name"></div><div class="form-field"><label>Code</label><input id="warehouse-code"></div><div class="form-field full"><label>Address</label><input id="warehouse-address"></div><div class="form-field"><label>City</label><input id="warehouse-city"></div><div class="form-field"><label>State</label><input id="warehouse-state"></div><div class="form-field"><label>Country</label><input id="warehouse-country" value="India"></div><div class="form-field"><label>Postal code</label><input id="warehouse-postal"></div></div><button class="btn-primary btn-full" onclick="saveWarehouseFromModal()">Save warehouse</button></div></div>
+<div id="toast" class="toast hidden"></div>
 </body>
 </html>

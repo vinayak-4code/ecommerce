@@ -4,12 +4,14 @@ import com.acme.ecommerce.cart.dto.AddCartItemRequest;
 import com.acme.ecommerce.cart.dto.ApplyCouponRequest;
 import com.acme.ecommerce.cart.dto.CartResponse;
 import com.acme.ecommerce.cart.dto.UpdateCartItemQuantityRequest;
+import com.acme.ecommerce.coupon.dto.EligibleCouponResponse;
 import com.acme.ecommerce.cart.service.CartService;
 import com.acme.ecommerce.common.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -52,6 +54,15 @@ public class CartController {
     @DeleteMapping("/items/{productId}")
     public CartResponse removeItem(@PathVariable UUID productId) {
         return cartService.removeItem(CurrentUser.require().userId(), productId);
+    }
+
+
+    /**
+     * Lists coupons currently applicable to the authenticated customer cart.
+     */
+    @GetMapping("/eligible-coupons")
+    public List<EligibleCouponResponse> eligibleCoupons() {
+        return cartService.eligibleCoupons(CurrentUser.require().userId());
     }
 
     /**

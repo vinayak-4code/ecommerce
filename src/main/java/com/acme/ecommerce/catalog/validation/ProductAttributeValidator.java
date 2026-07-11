@@ -8,6 +8,7 @@ import com.acme.ecommerce.common.exception.ErrorCode;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/** Validates seller-supplied product attribute values against Product Admin metadata. */
 @Component
 public class ProductAttributeValidator {
     public void validate(List<CategoryAttributeDefinition> definitions, List<AttributeValueRequest> attributes) {
@@ -34,27 +36,69 @@ public class ProductAttributeValidator {
             if (definition == null) {
                 fail("Invalid attribute for category: " + attribute.code());
             }
-            validateType(definition.getCode(), definition.getAttributeType(), attribute.value());
+            validateValue(definition, attribute.value());
         }
     }
 
-    private void validateType(String code, AttributeType type, String value) {
-        try {
-            switch (type) {
-                case STRING -> {
-                    if (value.isBlank()) {
-                        fail("Attribute " + code + " cannot be blank");
-                    }
-                }
-                case NUMBER -> new BigDecimal(value);
-                case BOOLEAN -> {
-                    if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
-                        fail("Attribute " + code + " must be true or false");
-                    }
+    private void validateValue(CategoryAttributeDefinition definition, String value) {
+        String code = definition.getCode();
+        String safeValue = value == null ? "" : value.trim();
+        if (safeValue.isBlank()) {
+            if (definition.isRequired()) {
+                fail("Attribute " + code + " cannot be blank");
+            }
+            return;
+        }
+        switch (definition.getAttributeType()) {
+            case STRING -> validateLength(definition, safeValue);
+            case SELECT -> validateAllowedValue(definition, safeValue);
+            case MULTI_SELECT -> Arrays.stream(safeValue.split(","))
+                    .map(String::trim)
+                    .filter(item -> !item.isBlank())
+                    .forEach(item -> validateAllowedValue(definition, item));
+            case NUMBER, DECIMAL -> validateNumber(definition, safeValue);
+            case BOOLEAN -> {
+                if (!"true".equalsIgnoreCase(safeValue) && !"false".equalsIgnoreCase(safeValue)) {
+                    fail("Attribute " + code + " must be true or false");
                 }
             }
+        }
+    }
+
+    private void validateLength(CategoryAttributeDefinition definition, String value) {
+        if (definition.getMinLength() != null && value.length() < definition.getMinLength()) {
+            fail("Attribute " + definition.getCode() + " is shorter than minimum length");
+        }
+        if (definition.getMaxLength() != null && value.length() > definition.getMaxLength()) {
+            fail("Attribute " + definition.getCode() + " exceeds maximum length");
+        }
+    }
+
+    private void validateAllowedValue(CategoryAttributeDefinition definition, String value) {
+        validateLength(definition, value);
+        String allowedValues = definition.getAllowedValues();
+        if (allowedValues == null || allowedValues.isBlank()) {
+            return;
+        }
+        boolean allowed = Arrays.stream(allowedValues.split(","))
+                .map(String::trim)
+                .anyMatch(item -> item.equalsIgnoreCase(value));
+        if (!allowed) {
+            fail("Attribute " + definition.getCode() + " must be one of: " + allowedValues);
+        }
+    }
+
+    private void validateNumber(CategoryAttributeDefinition definition, String value) {
+        try {
+            BigDecimal decimal = new BigDecimal(value);
+            if (definition.getMinValue() != null && decimal.compareTo(definition.getMinValue()) < 0) {
+                fail("Attribute " + definition.getCode() + " is below minimum value");
+            }
+            if (definition.getMaxValue() != null && decimal.compareTo(definition.getMaxValue()) > 0) {
+                fail("Attribute " + definition.getCode() + " exceeds maximum value");
+            }
         } catch (NumberFormatException exception) {
-            fail("Attribute " + code + " must be numeric");
+            fail("Attribute " + definition.getCode() + " must be numeric");
         }
     }
 

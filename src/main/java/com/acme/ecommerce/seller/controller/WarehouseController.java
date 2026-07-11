@@ -43,6 +43,16 @@ public class WarehouseController {
         return warehouseService.list(CurrentUser.require().userId(), page, size);
     }
 
+
+    /**
+     * Deletes a seller-owned warehouse when it has no inventory rows.
+     */
+    @DeleteMapping("/{warehouseId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID warehouseId) {
+        warehouseService.delete(CurrentUser.require().userId(), warehouseId);
+    }
+
     /**
      * Updates address/status fields for a seller-owned warehouse.
      */

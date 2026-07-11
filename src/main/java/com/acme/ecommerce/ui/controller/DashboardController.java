@@ -4,31 +4,29 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Thymeleaf page controller for landing, signup, and login pages.
+ * Public storefront page controller.
+ *
+ * <p>The root page is intentionally public so shoppers can browse products
+ * before logging in. Generic /login and /signup routes redirect to the customer
+ * flow; seller/admin have their own role-specific entry points.</p>
  */
 @Controller
 public class DashboardController {
-    /**
-     * Renders the entry page linking to Product Admin, Seller, and Customer UI journeys.
-     */
+    /** Renders the public commerce storefront and role entry page. */
     @GetMapping({"/", "/dashboard"})
     public String dashboard() {
         return "dashboard";
     }
 
-    /**
-     * Renders the signup page for Customer and Seller registration.
-     */
+    /** Redirects generic signup to the customer signup journey. */
     @GetMapping("/signup")
     public String signup() {
-        return "signup";
+        return "redirect:/customer/signup";
     }
 
-    /**
-     * Renders the login page.
-     */
+    /** Redirects generic login to the customer login journey. */
     @GetMapping("/login")
     public String login() {
-        return "login";
+        return "redirect:/customer/login";
     }
 }

@@ -9,11 +9,14 @@ import com.acme.ecommerce.cart.entity.CartItem;
 import com.acme.ecommerce.cart.enums.CartStatus;
 import com.acme.ecommerce.cart.repository.CartItemRepository;
 import com.acme.ecommerce.cart.repository.CartRepository;
+import com.acme.ecommerce.catalog.entity.Product;
+import com.acme.ecommerce.catalog.repository.ProductRepository;
 import com.acme.ecommerce.catalog.service.ProductService;
 import com.acme.ecommerce.common.event.DomainEventPublisher;
 import com.acme.ecommerce.common.event.DomainEventType;
 import com.acme.ecommerce.common.exception.BusinessException;
 import com.acme.ecommerce.common.exception.ErrorCode;
+import com.acme.ecommerce.coupon.dto.EligibleCouponResponse;
 import com.acme.ecommerce.coupon.service.CouponService;
 import com.acme.ecommerce.customer.entity.CustomerProfile;
 import com.acme.ecommerce.customer.service.CustomerProfileService;
@@ -22,7 +25,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 /**
@@ -41,6 +49,7 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final CustomerProfileService customerProfileService;
     private final ProductService productService;
+    private final ProductRepository productRepository;
     private final CouponService couponService;
     private final CartPricingService cartPricingService;
     private final InventoryService inventoryService;
@@ -98,6 +107,31 @@ public class CartService {
     public CartResponse view(UUID customerUserId) {
         Cart cart = getOrCreateActiveCart(customerUserId);
         return cartPricingService.price(cart).toResponse();
+    }
+
+
+    /**
+     * Returns coupons currently applicable to this customer cart with estimated savings.
+     */
+    @Transactional
+    public List<EligibleCouponResponse> eligibleCoupons(UUID customerUserId) {
+        Cart cart = getOrCreateActiveCart(customerUserId);
+        List<CartItem> items = cartItemRepository.findByCartId(cart.getId());
+        if (items.isEmpty()) {
+            return List.of();
+        }
+        Set<UUID> productIds = items.stream().map(CartItem::getProductId).collect(Collectors.toSet());
+        Map<UUID, Product> products = productRepository.findByIdIn(productIds).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+        Map<UUID, BigDecimal> subtotalByProductId = items.stream()
+                .filter(item -> products.containsKey(item.getProductId()))
+                .collect(Collectors.toMap(
+                        CartItem::getProductId,
+                        item -> com.acme.ecommerce.common.money.MoneyUtil.multiply(products.get(item.getProductId()).getPrice(), item.getQuantity()),
+                        BigDecimal::add
+                ));
+        BigDecimal subtotal = subtotalByProductId.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        return couponService.eligibleForCart(products, subtotalByProductId, subtotal);
     }
 
     /**

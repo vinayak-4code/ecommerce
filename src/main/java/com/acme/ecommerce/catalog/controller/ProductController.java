@@ -8,6 +8,7 @@ import com.acme.ecommerce.catalog.service.ProductService;
 import com.acme.ecommerce.common.security.CurrentUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
+
+
+    /**
+     * Lists products owned by the current seller for the Seller Center.
+     */
+    @GetMapping
+    public Page<ProductResponse> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return productService.listSellerProducts(CurrentUser.require().userId(), page, size);
+    }
 
     /**
      * Creates a seller-owned draft product after validating category-specific mandatory attributes.

@@ -1,6 +1,9 @@
 package com.acme.ecommerce.seller.service;
 
+import com.acme.ecommerce.common.exception.BusinessException;
+import com.acme.ecommerce.common.exception.ErrorCode;
 import com.acme.ecommerce.common.exception.ResourceNotFoundException;
+import com.acme.ecommerce.inventory.repository.InventoryItemRepository;
 import com.acme.ecommerce.seller.dto.CreateWarehouseRequest;
 import com.acme.ecommerce.seller.dto.UpdateWarehouseRequest;
 import com.acme.ecommerce.seller.dto.WarehouseResponse;
@@ -29,6 +32,7 @@ import java.util.UUID;
 public class WarehouseService {
     private final SellerService sellerService;
     private final WarehouseRepository warehouseRepository;
+    private final InventoryItemRepository inventoryItemRepository;
 
     /**
      * Creates a warehouse under the authenticated seller.
@@ -74,6 +78,21 @@ public class WarehouseService {
         warehouse.setPostalCode(request.postalCode().trim());
         warehouse.setStatus(request.status());
         return toResponse(warehouseRepository.save(warehouse));
+    }
+
+
+    /**
+     * Deletes a seller-owned warehouse only when no inventory rows are attached.
+     */
+    @Transactional
+    public void delete(UUID userId, UUID warehouseId) {
+        SellerProfile seller = sellerService.requireByUserId(userId);
+        Warehouse warehouse = warehouseRepository.findByIdAndSellerProfileId(warehouseId, seller.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found"));
+        if (inventoryItemRepository.existsByWarehouseId(warehouseId)) {
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Warehouse has inventory. Clear inventory before deleting it.");
+        }
+        warehouseRepository.delete(warehouse);
     }
 
     /**

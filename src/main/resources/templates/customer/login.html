@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Customer Login</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <h1>Customer sign in</h1>
+        <p>Browse products, manage a private cart, apply one coupon, and place orders.</p>
+        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="customer@example.com"></div>
+        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password1"></div>
+        <button class="btn-primary btn-full" onclick="loginRole('CUSTOMER')">Sign in as Customer</button>
+        <button class="btn-ghost btn-full" style="margin-top:10px" onclick="fillDemo('CUSTOMER')">Use demo credentials</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <p class="small muted">New customer? <a class="text-link" th:href="@{/customer/signup}">Create an account</a></p>
+      </div>
+    </section>
+    <section class="auth-art customer"><div class="auth-story"><h2>A clean shopping journey.</h2><p>Cart totals are re-priced from live product and inventory data every time the cart loads.</p><div class="auth-feature">🛒 <div><strong>Private cart</strong><br><span>The backend derives cart ownership from JWT, never from a customer id in the request.</span></div></div><div class="auth-feature">🏷 <div><strong>One coupon per cart</strong><br><span>Discounts are allocated proportionally across eligible items.</span></div></div></div></section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Customer Signup</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <h1>Create customer account</h1>
+        <p>Start shopping with an isolated cart and order history.</p>
+        <div class="form-field"><label>Full name</label><input id="fullName" placeholder="Vinayak Mittal"></div>
+        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="customer@email.com"></div>
+        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="new-password" placeholder="Minimum 8 characters"></div>
+        <div class="form-field"><label>Phone number</label><input id="phoneNumber" placeholder="Optional"></div>
+        <button class="btn-primary btn-full" onclick="signupCustomer()">Create customer account</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <p class="small muted">Already have an account? <a class="text-link" th:href="@{/customer/login}">Sign in</a></p>
+      </div>
+    </section>
+    <section class="auth-art customer"><div class="auth-story"><h2>Browse, save, checkout.</h2><p>Search products from the denormalized product projection and checkout using live cart validation.</p></div></section>
+  </main>
+</body>
+</html>

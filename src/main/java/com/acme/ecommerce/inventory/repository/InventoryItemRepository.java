@@ -13,6 +13,12 @@ import java.util.UUID;
 public interface InventoryItemRepository extends JpaRepository<InventoryItem, UUID> {
     Optional<InventoryItem> findByProductIdAndWarehouseId(UUID productId, UUID warehouseId);
 
+    @Query("select i from InventoryItem i where i.warehouse.sellerProfile.id = :sellerId")
+    List<InventoryItem> findBySellerId(@Param("sellerId") UUID sellerId);
+
+    @Query("select count(i) > 0 from InventoryItem i where i.warehouse.id = :warehouseId")
+    boolean existsByWarehouseId(@Param("warehouseId") UUID warehouseId);
+
     @Query("select i from InventoryItem i where i.productId = :productId and i.availableQuantity > 0 order by i.createdAt asc")
     List<InventoryItem> findAvailableByProductId(@Param("productId") UUID productId);
 

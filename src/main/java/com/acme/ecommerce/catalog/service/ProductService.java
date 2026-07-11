@@ -21,6 +21,10 @@ import com.acme.ecommerce.common.money.MoneyUtil;
 import com.acme.ecommerce.seller.entity.SellerProfile;
 import com.acme.ecommerce.seller.service.SellerService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +62,7 @@ public class ProductService {
     public ProductResponse create(UUID sellerUserId, CreateProductRequest request) {
         SellerProfile seller = sellerService.requireByUserId(sellerUserId);
         Category category = categoryService.requireCategory(request.categoryId());
+        categoryService.ensureLeafCategory(category);
         List<CategoryAttributeDefinition> definitions = attributeDefinitionRepository.findByCategoryId(category.getId());
         productAttributeValidator.validate(definitions, request.attributes());
 
@@ -86,6 +91,7 @@ public class ProductService {
         Product product = requireSellerProduct(productId, seller.getId());
         ensureProductIsMutable(product);
         Category category = categoryService.requireCategory(request.categoryId());
+        categoryService.ensureLeafCategory(category);
         List<CategoryAttributeDefinition> definitions = attributeDefinitionRepository.findByCategoryId(category.getId());
         productAttributeValidator.validate(definitions, request.attributes());
 
@@ -131,6 +137,17 @@ public class ProductService {
         Product saved = productRepository.save(product);
         productVersionService.capture(saved, sellerUserId);
         domainEventPublisher.publish(saved.getId(), AGGREGATE_TYPE, DomainEventType.PRODUCT_DELETED, Map.of("productId", saved.getId()));
+    }
+
+    /**
+     * Lists products owned by the authenticated seller for Seller Center tables.
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> listSellerProducts(UUID sellerUserId, int page, int size) {
+        SellerProfile seller = sellerService.requireByUserId(sellerUserId);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "name"));
+        return productRepository.findBySellerProfileId(seller.getId(), pageable)
+                .map(product -> productMapper.toResponse(product, attributeValueRepository.findByProductId(product.getId())));
     }
 
     /**

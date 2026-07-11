@@ -12,6 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -63,6 +64,15 @@ public class CategoryController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return categoryService.list(page, size);
+    }
+
+
+    /**
+     * Returns all active categories as a flat tree-ready list for storefront, seller, and admin UX.
+     */
+    @GetMapping("/tree")
+    public List<CategoryResponse> tree() {
+        return categoryService.tree();
     }
 
     /**

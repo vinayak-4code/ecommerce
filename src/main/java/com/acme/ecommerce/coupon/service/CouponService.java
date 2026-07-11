@@ -1,6 +1,7 @@
 package com.acme.ecommerce.coupon.service;
 
 import com.acme.ecommerce.catalog.entity.Product;
+import com.acme.ecommerce.catalog.enums.ProductStatus;
 import com.acme.ecommerce.catalog.service.CategoryService;
 import com.acme.ecommerce.catalog.service.ProductService;
 import com.acme.ecommerce.common.event.DomainEventPublisher;
@@ -13,6 +14,7 @@ import com.acme.ecommerce.common.exception.ResourceNotFoundException;
 import com.acme.ecommerce.common.money.MoneyUtil;
 import com.acme.ecommerce.coupon.dto.CouponEnrollmentResponse;
 import com.acme.ecommerce.coupon.dto.CouponResponse;
+import com.acme.ecommerce.coupon.dto.EligibleCouponResponse;
 import com.acme.ecommerce.coupon.dto.CreateCouponRequest;
 import com.acme.ecommerce.coupon.dto.UpdateCouponRequest;
 import com.acme.ecommerce.coupon.entity.Coupon;
@@ -23,6 +25,7 @@ import com.acme.ecommerce.coupon.enums.DiscountType;
 import com.acme.ecommerce.coupon.repository.CouponCategoryEligibilityRepository;
 import com.acme.ecommerce.coupon.repository.CouponProductEnrollmentRepository;
 import com.acme.ecommerce.coupon.repository.CouponRepository;
+import com.acme.ecommerce.coupon.strategy.DiscountStrategyFactory;
 import com.acme.ecommerce.coupon.validation.CouponValidator;
 import com.acme.ecommerce.seller.entity.SellerProfile;
 import com.acme.ecommerce.seller.service.SellerService;
@@ -34,6 +37,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
@@ -67,6 +72,7 @@ public class CouponService {
     private final CategoryService categoryService;
     private final SellerService sellerService;
     private final CouponValidator couponValidator;
+    private final DiscountStrategyFactory discountStrategyFactory;
     private final DomainEventPublisher domainEventPublisher;
 
     /**
@@ -174,6 +180,49 @@ public class CouponService {
     }
 
     /**
+     * Returns currently usable coupons for a public product detail page.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<EligibleCouponResponse> eligibleForProduct(UUID productId) {
+        Product product = productService.requireProduct(productId);
+        if (product.getStatus() != ProductStatus.PUBLISHED) {
+            return java.util.List.of();
+        }
+        BigDecimal productSubtotal = MoneyUtil.money(product.getPrice());
+        return couponRepository.findAll().stream()
+                .filter(coupon -> isCurrentlyUsable(coupon, productSubtotal))
+                .filter(coupon -> enrollmentRepository.existsByCouponIdAndProductId(coupon.getId(), productId))
+                .filter(coupon -> isCategoryEligible(coupon, product.getCategory().getId()))
+                .map(coupon -> toEligibleResponse(coupon, productSubtotal))
+                .toList();
+    }
+
+    /**
+     * Returns coupons applicable to the current cart lines with estimated savings.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<EligibleCouponResponse> eligibleForCart(Map<UUID, Product> productsById, Map<UUID, BigDecimal> subtotalByProductId, BigDecimal cartSubtotal) {
+        if (productsById == null || productsById.isEmpty()) {
+            return java.util.List.of();
+        }
+        return couponRepository.findAll().stream()
+                .filter(coupon -> isCurrentlyUsable(coupon, cartSubtotal))
+                .map(coupon -> {
+                    BigDecimal eligibleSubtotal = subtotalByProductId.entrySet().stream()
+                            .filter(entry -> enrollmentRepository.existsByCouponIdAndProductId(coupon.getId(), entry.getKey()))
+                            .filter(entry -> {
+                                Product product = productsById.get(entry.getKey());
+                                return product != null && isCategoryEligible(coupon, product.getCategory().getId());
+                            })
+                            .map(Map.Entry::getValue)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    return eligibleSubtotal.compareTo(BigDecimal.ZERO) > 0 ? toEligibleResponse(coupon, eligibleSubtotal) : null;
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
+    /**
      * Filters candidate product IDs down to products enrolled in the coupon.
      */
     @Transactional(readOnly = true)
@@ -248,6 +297,45 @@ public class CouponService {
     private Coupon requireById(UUID couponId) {
         return couponRepository.findById(couponId)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon not found"));
+    }
+
+    private boolean isCurrentlyUsable(Coupon coupon, BigDecimal subtotal) {
+        Instant now = Instant.now();
+        return coupon.getStatus() == com.acme.ecommerce.coupon.enums.CouponStatus.ACTIVE
+                && !coupon.getStartsAt().isAfter(now)
+                && !coupon.getEndsAt().isBefore(now)
+                && (coupon.getMinCartAmount() == null || subtotal.compareTo(coupon.getMinCartAmount()) >= 0);
+    }
+
+    private EligibleCouponResponse toEligibleResponse(Coupon coupon, BigDecimal eligibleSubtotal) {
+        BigDecimal estimated = discountStrategyFactory.get(coupon.getDiscountType()).calculate(MoneyUtil.money(eligibleSubtotal), coupon);
+        return new EligibleCouponResponse(
+                coupon.getId(),
+                coupon.getCode(),
+                coupon.getDescription(),
+                coupon.getDiscountType(),
+                coupon.getValue(),
+                coupon.getMaxDiscountAmount(),
+                coupon.getMinCartAmount(),
+                coupon.getStartsAt(),
+                coupon.getEndsAt(),
+                lifecycleStatus(coupon),
+                estimated
+        );
+    }
+
+    private String lifecycleStatus(Coupon coupon) {
+        Instant now = Instant.now();
+        if (coupon.getStatus() != com.acme.ecommerce.coupon.enums.CouponStatus.ACTIVE) {
+            return "INACTIVE";
+        }
+        if (coupon.getStartsAt().isAfter(now)) {
+            return "SCHEDULED";
+        }
+        if (coupon.getEndsAt().isBefore(now)) {
+            return "EXPIRED";
+        }
+        return "LIVE";
     }
 
     private CouponResponse toResponse(Coupon coupon) {

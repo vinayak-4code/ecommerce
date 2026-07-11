@@ -30,19 +30,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Owns category hierarchy and predefined attribute definitions.
- *
- * <p>Only PRODUCT_ADMIN reaches write methods through Spring Security. Sellers
- * can then create products only with attributes that are already defined here.
- * Example: Mobile Phones may require RAM and Storage while Screen Size is optional.</p>
- */
-/**
  * Product Admin category service for hierarchical classifications and attributes.
  *
- * <p>Categories are intentionally curated by Product Admin instead of sellers.
- * This keeps product attributes predefined and makes search filters predictable.
- * Example: Mobile Phones can require RAM and Storage while making Battery
- * Capacity optional.</p>
+ * <p>Categories are curated by Product Admin. Attributes are intentionally
+ * attachable only to leaf categories so seller product forms remain accurate:
+ * a seller cannot create a product under a generic root such as Electronics;
+ * they must choose Mobile Phones, Laptops, or another final classification.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -51,9 +44,7 @@ public class CategoryService {
     private final CategoryAttributeDefinitionRepository attributeDefinitionRepository;
     private final CategoryMapper categoryMapper;
 
-    /**
-     * Creates a root category or child classification with optional attribute definitions.
-     */
+    /** Creates a root category or child classification. */
     @Transactional
     public CategoryResponse create(CreateCategoryRequest request) {
         String slug = slugify(request.name());
@@ -71,18 +62,14 @@ public class CategoryService {
         return categoryMapper.toResponse(saved, attributes);
     }
 
-    /**
-     * Updates category metadata and upserts incoming attribute definitions.
-     */
+    /** Updates category metadata and replaces/upserts attribute metadata when supplied. */
     @Transactional
     public CategoryResponse update(UUID categoryId, UpdateCategoryRequest request) {
         Category category = requireCategory(categoryId);
         String slug = slugify(request.name());
         categoryRepository.findBySlug(slug)
                 .filter(existing -> !existing.getId().equals(categoryId))
-                .ifPresent(existing -> {
-                    throw new DuplicateResourceException("Category already exists with slug: " + slug);
-                });
+                .ifPresent(existing -> { throw new DuplicateResourceException("Category already exists with slug: " + slug); });
         Category parent = request.parentId() == null ? null : requireCategory(request.parentId());
         ensureNoCycle(categoryId, parent);
         category.setName(request.name().trim());
@@ -96,23 +83,18 @@ public class CategoryService {
         return categoryMapper.toResponse(saved, attributes);
     }
 
-    /**
-     * Adds a single predefined attribute to an existing category.
-     */
+    /** Adds one predefined attribute definition to an existing leaf category. */
     @Transactional
     public AttributeDefinitionResponse addAttribute(UUID categoryId, AttributeDefinitionRequest request) {
         Category category = requireCategory(categoryId);
+        ensureLeafCategory(category);
         attributeDefinitionRepository.findByCategoryIdAndCode(categoryId, normalizeCode(request.code()))
-                .ifPresent(existing -> {
-                    throw new DuplicateResourceException("Attribute code already exists for category");
-                });
+                .ifPresent(existing -> { throw new DuplicateResourceException("Attribute code already exists for category"); });
         CategoryAttributeDefinition attribute = toAttributeDefinition(category, request);
         return categoryMapper.toAttributeResponse(attributeDefinitionRepository.save(attribute));
     }
 
-    /**
-     * Lists categories with bounded pagination.
-     */
+    /** Lists active categories with bounded pagination. */
     @Transactional(readOnly = true)
     public Page<CategoryResponse> list(int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100), Sort.by(Sort.Direction.ASC, "name"));
@@ -120,27 +102,40 @@ public class CategoryService {
                 .map(category -> categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(category.getId())));
     }
 
-    /**
-     * Returns one category with its attribute definitions.
-     */
+    /** Returns all active categories as a flat tree-ready list for UI navigation. */
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> tree() {
+        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name")).stream()
+                .filter(Category::isActive)
+                .map(category -> categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(category.getId())))
+                .toList();
+    }
+
+    /** Returns one category with its attribute definitions. */
     @Transactional(readOnly = true)
     public CategoryResponse get(UUID categoryId) {
         Category category = requireCategory(categoryId);
         return categoryMapper.toResponse(category, attributeDefinitionRepository.findByCategoryId(categoryId));
     }
 
-    /**
-     * Loads a category entity or raises a not-found exception.
-     */
+    /** Loads a category entity or raises a not-found exception. */
     @Transactional(readOnly = true)
     public Category requireCategory(UUID categoryId) {
         return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
     }
 
-    /**
-     * Returns a category plus its ancestors for category-tree coupon eligibility.
-     */
+    /** Ensures product creation happens only under a final category. */
+    @Transactional(readOnly = true)
+    public void ensureLeafCategory(Category category) {
+        boolean hasChildren = categoryRepository.findAll().stream()
+                .anyMatch(candidate -> candidate.getParent() != null && candidate.getParent().getId().equals(category.getId()) && candidate.isActive());
+        if (hasChildren) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Attributes/products can be attached only to a final sub-category");
+        }
+    }
+
+    /** Returns a category plus its ancestors for coupon eligibility checks. */
     @Transactional(readOnly = true)
     public Set<UUID> categoryAndAncestorIds(UUID categoryId) {
         Set<UUID> ids = new LinkedHashSet<>();
@@ -150,6 +145,21 @@ public class CategoryService {
             current = current.getParent();
         }
         return ids;
+    }
+
+    /** Returns selected category and all active descendants for public browsing. */
+    @Transactional(readOnly = true)
+    public Set<UUID> categoryAndDescendantIds(UUID categoryId) {
+        Set<UUID> ids = new LinkedHashSet<>();
+        collectDescendants(categoryId, ids);
+        return ids;
+    }
+
+    private void collectDescendants(UUID categoryId, Set<UUID> ids) {
+        ids.add(categoryId);
+        categoryRepository.findAll().stream()
+                .filter(category -> category.getParent() != null && category.getParent().getId().equals(categoryId) && category.isActive())
+                .forEach(child -> collectDescendants(child.getId(), ids));
     }
 
     private void ensureNoCycle(UUID categoryId, Category proposedParent) {
@@ -166,11 +176,10 @@ public class CategoryService {
         if (attributes == null || attributes.isEmpty()) {
             return attributeDefinitionRepository.findByCategoryId(category.getId());
         }
+        ensureLeafCategory(category);
         ensureNoDuplicateCodes(attributes);
-
         List<CategoryAttributeDefinition> existing = attributeDefinitionRepository.findByCategoryId(category.getId());
         List<CategoryAttributeDefinition> updatedDefinitions = new ArrayList<>();
-
         for (AttributeDefinitionRequest request : attributes) {
             String code = normalizeCode(request.code());
             CategoryAttributeDefinition definition = existing.stream()
@@ -182,13 +191,9 @@ public class CategoryService {
                         created.setCode(code);
                         return created;
                     });
-            definition.setName(request.name().trim());
-            definition.setAttributeType(request.attributeType());
-            definition.setRequired(request.required());
-            definition.setSearchable(request.searchable());
+            applyAttributeFields(definition, request);
             updatedDefinitions.add(definition);
         }
-
         attributeDefinitionRepository.saveAll(updatedDefinitions);
         return attributeDefinitionRepository.findByCategoryId(category.getId());
     }
@@ -210,12 +215,23 @@ public class CategoryService {
     private CategoryAttributeDefinition toAttributeDefinition(Category category, AttributeDefinitionRequest request) {
         CategoryAttributeDefinition definition = new CategoryAttributeDefinition();
         definition.setCategory(category);
-        definition.setName(request.name().trim());
         definition.setCode(normalizeCode(request.code()));
+        applyAttributeFields(definition, request);
+        return definition;
+    }
+
+    private void applyAttributeFields(CategoryAttributeDefinition definition, AttributeDefinitionRequest request) {
+        definition.setName(request.name().trim());
+        definition.setLabelText((request.labelText() == null || request.labelText().isBlank()) ? request.name().trim() : request.labelText().trim());
         definition.setAttributeType(request.attributeType());
         definition.setRequired(request.required());
         definition.setSearchable(request.searchable());
-        return definition;
+        definition.setVisibleToCustomer(request.visibleToCustomer());
+        definition.setMinLength(request.minLength());
+        definition.setMaxLength(request.maxLength());
+        definition.setMinValue(request.minValue());
+        definition.setMaxValue(request.maxValue());
+        definition.setAllowedValues(request.allowedValues() == null || request.allowedValues().isBlank() ? null : request.allowedValues().trim());
     }
 
     private String slugify(String value) {

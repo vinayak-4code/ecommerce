@@ -3,36 +3,96 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ShopEasy - E-Commerce Platform</title>
+    <title>VinCommerce | Demo Storefront</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
+    <script defer th:src="@{/js/portal.js}"></script>
 </head>
-<body class="welcome-page">
-<div class="welcome-container">
-    <div class="welcome-hero">
-        <h1>🛍️ ShopEasy</h1>
-        <p class="welcome-subtitle">Your one-stop e-commerce platform</p>
+<body data-page="storefront" onload="initStorefront()">
+<header class="store-header">
+    <a class="brand" href="/">🛍️ VinCommerce</a>
+    <div class="header-search">
+        <input id="public-search" placeholder="Search mobiles, laptops, apparel..." onkeydown="if(event.key==='Enter') searchPublicCatalog()">
+        <button class="btn-primary" onclick="searchPublicCatalog()">Search</button>
     </div>
-    <div class="welcome-cards">
-        <a th:href="@{/customer}" class="welcome-card customer-card">
-            <div class="welcome-card-icon">🛒</div>
-            <h2>Customer</h2>
-            <p>Browse products, add to cart, and place orders</p>
-        </a>
-        <a th:href="@{/seller}" class="welcome-card seller-card">
-            <div class="welcome-card-icon">🏬</div>
-            <h2>Seller</h2>
-            <p>List products, manage inventory &amp; warehouses</p>
-        </a>
-        <a th:href="@{/admin}" class="welcome-card admin-card">
-            <div class="welcome-card-icon">🛡️</div>
-            <h2>Admin</h2>
-            <p>Manage categories, attributes &amp; coupons</p>
-        </a>
-    </div>
-    <div class="welcome-footer">
-        <p>Demo credentials — Password for all: <strong>Password1</strong></p>
-        <p>Customer: customer@example.com · Seller: seller@example.com · Admin: admin@example.com</p>
-    </div>
+    <nav class="header-actions">
+        <a href="#catalog">Products</a>
+        <a href="#deals">Deals</a>
+        <a id="customer-entry-link" href="/customer/login">Login</a>
+        <button class="cart-button" onclick="openCustomerCart()">Cart <span id="public-cart-count">0</span></button>
+        <a href="/seller/login">Seller</a>
+        <a href="/admin/login">Admin</a>
+    </nav>
+</header>
+
+<main>
+    <section class="hero-market">
+        <div class="hero-copy">
+            <span class="eyebrow">Enterprise commerce demo</span>
+            <h1>Shop products before login. Sign in only when you are ready to buy.</h1>
+            <p>Public catalog browsing, category discovery, coupons, cart validation, and order placement in one clean flow.</p>
+            <div class="hero-actions">
+                <a class="btn-primary" href="#catalog">Explore products</a>
+                <a class="btn-ghost" href="/customer/signup">Create customer account</a>
+            </div>
+        </div>
+        <div class="hero-panel">
+            <h3>Live offers</h3>
+            <div id="hero-offer-list" class="offer-stack"></div>
+        </div>
+    </section>
+
+    <section class="section-block">
+        <div class="section-title-row">
+            <div>
+                <span class="eyebrow">Categories</span>
+                <h2>Shop by classification</h2>
+            </div>
+            <button class="btn-ghost" onclick="clearPublicFilters()">Clear filters</button>
+        </div>
+        <div id="public-category-strip" class="category-strip"></div>
+    </section>
+
+    <section id="catalog" class="market-layout section-block">
+        <aside class="filter-panel">
+            <h3>Categories</h3>
+            <div id="public-category-tree" class="tree-list"></div>
+            <h3>Attributes</h3>
+            <div id="public-attribute-filters"></div>
+            <label class="check-row"><input id="public-instock-only" type="checkbox" onchange="renderPublicCatalog()"> In stock only</label>
+        </aside>
+        <section class="catalog-panel">
+            <div class="section-title-row">
+                <div>
+                    <span class="eyebrow">Product catalog</span>
+                    <h2>Products for you</h2>
+                    <p id="public-result-subtitle" class="muted">Loading products...</p>
+                </div>
+                <select id="public-sort" onchange="searchPublicCatalog()">
+                    <option value="name|ASC">Sort: Name</option>
+                    <option value="price|ASC">Price: Low to High</option>
+                    <option value="price|DESC">Price: High to Low</option>
+                    <option value="totalAvailableQuantity|DESC">Availability</option>
+                </select>
+            </div>
+            <div id="public-product-grid" class="product-grid market-grid"></div>
+        </section>
+    </section>
+
+    <section id="deals" class="section-block">
+        <div class="section-title-row"><div><span class="eyebrow">Promotions</span><h2>Available coupons</h2></div></div>
+        <div id="public-coupon-strip" class="coupon-grid"></div>
+    </section>
+</main>
+
+<div id="cart-drawer" class="drawer right-drawer">
+    <div class="drawer-header"><h2>Your cart</h2><button onclick="closeDrawer('cart-drawer')">✕</button></div>
+    <div id="cart-body" class="drawer-body"></div>
+    <div id="cart-coupons" class="drawer-body"></div>
+    <div id="cart-summary" class="drawer-footer"></div>
 </div>
+
+<div id="product-modal" class="modal"><div class="modal-card product-modal-card"><button class="modal-x" onclick="closeModal('product-modal')">✕</button><div id="product-modal-body"></div></div></div>
+<div id="login-required-modal" class="modal"><div class="modal-card small-modal"><button class="modal-x" onclick="closeModal('login-required-modal')">✕</button><h2>Login required</h2><p id="login-required-message" class="muted">Please login to continue.</p><div class="stack-actions"><a class="btn-primary" href="/customer/login">Customer login</a><a class="btn-ghost" href="/customer/signup">Create account</a><button class="btn-ghost" onclick="closeModal('login-required-modal')">Continue browsing</button></div></div></div>
+<div id="toast" class="toast hidden"></div>
 </body>
 </html>

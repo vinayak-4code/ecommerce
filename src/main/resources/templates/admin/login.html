@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Product Admin Login</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <h1>Product Admin sign in</h1>
+        <p>Use the seeded admin account to govern categories, product attributes, and coupon rules.</p>
+        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="admin@example.com"></div>
+        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password1"></div>
+        <button class="btn-primary btn-full" onclick="loginRole('PRODUCT_ADMIN')">Sign in as Product Admin</button>
+        <button class="btn-ghost btn-full" style="margin-top:10px" onclick="fillDemo('PRODUCT_ADMIN')">Use demo credentials</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <p class="small muted">Admin signup is disabled by design. Demo: <span class="kbd">admin@example.com / Password1</span></p>
+      </div>
+    </section>
+    <section class="auth-art">
+      <div class="auth-story"><h2>Catalog governance starts here.</h2><p>Product Admin defines the category tree, mandatory attributes, customer-visible fields, and promotional constraints before sellers list products.</p><div class="auth-feature">🧩 <div><strong>Category-aware attributes</strong><br><span>Mobile phones, laptops, and apparel each get their own schema.</span></div></div><div class="auth-feature">🏷 <div><strong>Controlled coupons</strong><br><span>Define live dates, expiry, flat discounts, and capped percentage discounts.</span></div></div></div>
+    </section>
+  </main>
+</body>
+</html>

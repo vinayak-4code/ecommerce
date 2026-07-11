@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seller Signup</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <h1>Enroll as a seller</h1>
+        <p>Create a seller account and start managing products and stock.</p>
+        <div class="form-field"><label>Business name</label><input id="businessName" placeholder="Vinayak Retail LLP"></div>
+        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="seller@company.com"></div>
+        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="new-password" placeholder="Minimum 8 characters"></div>
+        <div class="form-field"><label>Contact number</label><input id="contactNumber" placeholder="Optional"></div>
+        <button class="btn-primary btn-full" onclick="signupSeller()">Create seller account</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <p class="small muted">Already have an account? <a class="text-link" th:href="@{/seller/login}">Sign in</a></p>
+      </div>
+    </section>
+    <section class="auth-art seller"><div class="auth-story"><h2>Start with a warehouse, then list products.</h2><p>The seller form dynamically loads mandatory and optional product attributes from Product Admin's category schema.</p></div></section>
+  </main>
+</body>
+</html>

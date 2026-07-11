@@ -4,6 +4,7 @@ import com.acme.ecommerce.common.security.CurrentUser;
 import com.acme.ecommerce.coupon.dto.CouponEnrollmentResponse;
 import com.acme.ecommerce.coupon.dto.CouponResponse;
 import com.acme.ecommerce.coupon.dto.CreateCouponRequest;
+import com.acme.ecommerce.coupon.dto.EligibleCouponResponse;
 import com.acme.ecommerce.coupon.dto.UpdateCouponRequest;
 import com.acme.ecommerce.coupon.service.CouponService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -50,6 +52,15 @@ public class CouponController {
             @RequestParam(defaultValue = "20") int size
     ) {
         return couponService.list(page, size);
+    }
+
+
+    /**
+     * Public endpoint used by product detail pages to show available coupons before login.
+     */
+    @GetMapping("/products/{productId}/eligible")
+    public List<EligibleCouponResponse> eligibleForProduct(@PathVariable UUID productId) {
+        return couponService.eligibleForProduct(productId);
     }
 
     /**

@@ -31,7 +31,9 @@ public class ProductMapper {
         return new ProductAttributeResponse(
                 value.getAttributeDefinition().getCode(),
                 value.getAttributeDefinition().getName(),
-                value.getValue()
+                value.getAttributeDefinition().getLabelText(),
+                value.getValue(),
+                value.getAttributeDefinition().isVisibleToCustomer()
         );
     }
 }

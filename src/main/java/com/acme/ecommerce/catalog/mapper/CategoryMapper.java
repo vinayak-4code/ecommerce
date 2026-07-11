@@ -26,9 +26,16 @@ public class CategoryMapper {
                 attribute.getId(),
                 attribute.getName(),
                 attribute.getCode(),
+                attribute.getLabelText(),
                 attribute.getAttributeType(),
                 attribute.isRequired(),
-                attribute.isSearchable()
+                attribute.isSearchable(),
+                attribute.isVisibleToCustomer(),
+                attribute.getMinLength(),
+                attribute.getMaxLength(),
+                attribute.getMinValue(),
+                attribute.getMaxValue(),
+                attribute.getAllowedValues()
         );
     }
 }

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Getter
@@ -28,6 +29,9 @@ public class CategoryAttributeDefinition {
     @Column(nullable = false, length = 80)
     private String code;
 
+    @Column(name = "label_text", nullable = false, length = 160)
+    private String labelText;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "attribute_type", nullable = false, length = 40)
     private AttributeType attributeType;
@@ -37,4 +41,22 @@ public class CategoryAttributeDefinition {
 
     @Column(nullable = false)
     private boolean searchable = true;
+
+    @Column(name = "visible_to_customer", nullable = false)
+    private boolean visibleToCustomer = true;
+
+    @Column(name = "min_length")
+    private Integer minLength;
+
+    @Column(name = "max_length")
+    private Integer maxLength;
+
+    @Column(name = "min_value", precision = 19, scale = 4)
+    private BigDecimal minValue;
+
+    @Column(name = "max_value", precision = 19, scale = 4)
+    private BigDecimal maxValue;
+
+    @Column(name = "allowed_values", length = 1000)
+    private String allowedValues;
 }

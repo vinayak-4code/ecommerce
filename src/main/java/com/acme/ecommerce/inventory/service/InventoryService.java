@@ -17,6 +17,7 @@ import com.acme.ecommerce.inventory.enums.InventoryReservationStatus;
 import com.acme.ecommerce.inventory.repository.InventoryItemRepository;
 import com.acme.ecommerce.inventory.repository.InventoryReservationRepository;
 import com.acme.ecommerce.seller.entity.Warehouse;
+import com.acme.ecommerce.seller.service.SellerService;
 import com.acme.ecommerce.seller.service.WarehouseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class InventoryService {
     private final InventoryItemRepository inventoryItemRepository;
     private final InventoryReservationRepository reservationRepository;
     private final WarehouseService warehouseService;
+    private final SellerService sellerService;
     private final ProductService productService;
     private final DomainEventPublisher domainEventPublisher;
 
@@ -121,6 +123,26 @@ public class InventoryService {
                 "reason", request.reason()
         ));
         return toResponse(saved);
+    }
+
+
+    /**
+     * Lists all inventory rows belonging to the authenticated seller across warehouses.
+     */
+    @Transactional(readOnly = true)
+    public List<InventoryResponse> listForSeller(UUID sellerUserId) {
+        var seller = sellerService.requireByUserId(sellerUserId);
+        return inventoryItemRepository.findBySellerId(seller.getId()).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    /**
+     * Checks whether a warehouse has inventory rows, used to keep warehouse deletion safe.
+     */
+    @Transactional(readOnly = true)
+    public boolean hasInventoryForWarehouse(UUID warehouseId) {
+        return inventoryItemRepository.existsByWarehouseId(warehouseId);
     }
 
     /**
@@ -219,6 +241,27 @@ public class InventoryService {
                     "orderId", orderId
             ));
         }
+    }
+
+
+    /**
+     * Restores already-consumed stock when a seller cancels an order line.
+     */
+    @Transactional
+    public void restockConsumedLine(UUID productId, UUID warehouseId, int quantity, UUID orderId) {
+        if (quantity <= 0) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Restock quantity must be positive");
+        }
+        InventoryItem inventoryItem = inventoryItemRepository.findByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "Inventory not found for restock"));
+        inventoryItem.setAvailableQuantity(inventoryItem.getAvailableQuantity() + quantity);
+        InventoryItem saved = inventoryItemRepository.save(inventoryItem);
+        domainEventPublisher.publish(saved.getId(), AGGREGATE_TYPE, DomainEventType.INVENTORY_RELEASED, Map.of(
+                "productId", productId,
+                "warehouseId", warehouseId,
+                "quantity", quantity,
+                "orderId", orderId
+        ));
     }
 
     /**

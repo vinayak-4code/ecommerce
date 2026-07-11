@@ -109,6 +109,7 @@ public class SearchIndexSyncService {
 
     private String attributesJson(Product product) {
         Map<String, String> attributes = attributeValueRepository.findByProductId(product.getId()).stream()
+                .filter(value -> value.getAttributeDefinition().isVisibleToCustomer())
                 .collect(Collectors.toMap(value -> value.getAttributeDefinition().getCode(), ProductAttributeValue::getValue));
         try {
             return objectMapper.writeValueAsString(attributes);

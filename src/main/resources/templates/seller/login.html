@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seller Login</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <h1>Seller Center sign in</h1>
+        <p>Manage your product catalog, inventory, promotions, warehouses, and customer order lines.</p>
+        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="seller@example.com"></div>
+        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password1"></div>
+        <button class="btn-primary btn-full" onclick="loginRole('SELLER')">Sign in as Seller</button>
+        <button class="btn-ghost btn-full" style="margin-top:10px" onclick="fillDemo('SELLER')">Use demo credentials</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <p class="small muted">New seller? <a class="text-link" th:href="@{/seller/signup}">Create a seller account</a></p>
+      </div>
+    </section>
+    <section class="auth-art seller">
+      <div class="auth-story"><h2>Run your storefront operations.</h2><p>Create category-aware product listings, publish products, update inventory, enroll products into eligible coupons, and ship or cancel seller-owned order lines.</p><div class="auth-feature">📦 <div><strong>Product tabs</strong><br><span>Draft, published, unpublished, and deleted views.</span></div></div><div class="auth-feature">🚚 <div><strong>Seller order isolation</strong><br><span>Only lines for your products are visible and actionable.</span></div></div></div>
+    </section>
+  </main>
+</body>
+</html>
