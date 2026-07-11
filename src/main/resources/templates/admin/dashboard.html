@@ -2,88 +2,134 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
-    <title>Product Admin Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Panel</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
     <script defer th:src="@{/js/ecommerce-ui.js}"></script>
 </head>
 <body>
-<header>
-    <span class="badge">/admin</span>
-    <h1>Product Admin console</h1>
-    <p>Create category trees, sub-classifications, predefined mandatory/non-mandatory attributes, and coupon definitions.</p>
-    <nav><a th:href="@{/}">← Back to journey selector</a></nav>
-</header>
-<main>
-    <section class="grid">
-        <article class="panel">
-            <h2>Sign in as Product Admin</h2>
-            <label>Email</label>
-            <input id="PRODUCT_ADMIN-email" value="admin@example.com">
-            <label>Password</label>
-            <input id="PRODUCT_ADMIN-password" type="password" value="Password1">
-            <button onclick="login('PRODUCT_ADMIN','admin-output')">Login</button>
-            <button class="secondary" onclick="logout('PRODUCT_ADMIN','admin-output')">Logout</button>
-        </article>
+<nav class="top-nav" style="background:#7c2d12;">
+    <div class="nav-left"><a th:href="@{/admin}" class="nav-logo">🛡️ Admin Panel</a></div>
+    <div class="nav-center" id="admin-nav-links" style="display:none;">
+        <a href="#" onclick="showSection('categories');return false;" class="nav-link active">Categories</a>
+        <a href="#" onclick="showSection('create-category');return false;" class="nav-link">+ Category</a>
+        <a href="#" onclick="showSection('coupons');return false;" class="nav-link">Coupons</a>
+        <a href="#" onclick="showSection('create-coupon');return false;" class="nav-link">+ Coupon</a>
+    </div>
+    <div class="nav-right"><span id="admin-nav-user" style="font-size:.85rem;color:rgba(255,255,255,.8);"></span></div>
+</nav>
 
-        <article class="panel">
-            <h2>Create category / sub-classification</h2>
-            <label>Parent category ID, empty for root</label>
-            <input id="admin-category-parent-id" placeholder="00000000-0000-0000-0000-000000000100">
-            <label>Name</label>
-            <input id="admin-category-name" value="Smart Watches">
-            <label>Predefined attributes JSON</label>
-            <textarea id="admin-category-attributes">[
-  {"name":"Connectivity","code":"connectivity","attributeType":"STRING","required":true,"searchable":true},
-  {"name":"Battery Life","code":"battery_life","attributeType":"STRING","required":false,"searchable":true}
-]</textarea>
-            <button onclick="adminCreateCategory()">Create category</button>
-            <button class="ghost" onclick="loadCategories()">List categories</button>
-        </article>
+<main class="main-content">
+    <!-- Gate -->
+    <section id="section-gate" class="page-section active">
+        <div class="auth-gate">
+            <h1>🛡️ Admin Panel</h1>
+            <p>Manage product categories, attributes, and coupon definitions.</p>
+            <div class="auth-gate-buttons">
+                <button onclick="showSection('login')" class="btn-large">Sign In</button>
+                <button onclick="fillRoleCredentials('PRODUCT_ADMIN');showSection('login')" class="btn-large ghost">Use Demo Credentials</button>
+            </div>
+        </div>
+    </section>
 
-        <article class="panel">
-            <h2>Create coupon</h2>
-            <label>Code</label>
-            <input id="admin-coupon-code" value="DEMO15">
-            <label>Description</label>
-            <input id="admin-coupon-description" value="15 percent off eligible electronics products, capped at 500.">
+    <!-- Login -->
+    <section id="section-login" class="page-section">
+        <div class="auth-form-container">
+            <h2>Admin Sign In</h2>
+            <div class="form-group"><label>Email</label><input id="PRODUCT_ADMIN-email" type="email" placeholder="admin@email.com"></div>
+            <div class="form-group"><label>Password</label><input id="PRODUCT_ADMIN-password" type="password" placeholder="Password"></div>
+            <button onclick="doAdminLogin()" class="btn-full">Sign In</button>
+            <div id="admin-login-output" class="form-message"></div>
+        </div>
+        <p class="credentials-note">Demo: admin@example.com / Password1</p>
+    </section>
+
+    <!-- Signup (not typical for admin but included) -->
+    <section id="section-signup" class="page-section">
+        <div class="auth-form-container">
+            <h2>Admin account creation is restricted.</h2>
+            <p style="color:var(--muted);">Please contact the system administrator to get admin access.</p>
+            <button onclick="showSection('login')" class="ghost">← Back to Sign In</button>
+        </div>
+    </section>
+
+    <!-- Categories List -->
+    <section id="section-categories" class="page-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h1 class="section-title" style="margin:0;">Categories</h1>
+            <div><button onclick="loadCategories()">🔄 Refresh</button> <button class="ghost" onclick="showSection('create-category')">➕ New</button></div>
+        </div>
+        <div id="admin-categories-display"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-title">Click Refresh to load</div></div></div>
+    </section>
+
+    <!-- Create Category (with key-value pair attributes) -->
+    <section id="section-create-category" class="page-section">
+        <h1 class="section-title">Create Category</h1>
+        <div class="form-card">
+            <div class="form-group"><label>Parent Category ID <span style="color:var(--muted);font-weight:400;">(leave empty for root)</span></label><input id="admin-category-parent-id" placeholder="UUID of parent category (optional)"></div>
+            <div class="form-group"><label>Category Name *</label><input id="admin-category-name" placeholder="e.g. Smartphones, Laptops, T-Shirts"></div>
+
+            <div class="form-group">
+                <label>Category Attributes</label>
+                <p style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">Define what attributes products in this category must have.</p>
+                <div id="category-attributes-list" class="kv-list"></div>
+                <button type="button" class="ghost" onclick="addCategoryAttribute()" style="margin-top:8px;">+ Add Attribute</button>
+            </div>
+
+            <button onclick="adminCreateCategory()" class="btn-full">Create Category</button>
+            <div id="admin-create-category-output" class="form-message"></div>
+        </div>
+    </section>
+
+    <!-- Coupons List -->
+    <section id="section-coupons" class="page-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h1 class="section-title" style="margin:0;">Coupons</h1>
+            <div><button onclick="adminListCoupons()">🔄 Refresh</button> <button class="ghost" onclick="showSection('create-coupon')">➕ New</button></div>
+        </div>
+        <div id="admin-coupons-display"><div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-title">Click Refresh to load</div></div></div>
+    </section>
+
+    <!-- Create Coupon (proper form) -->
+    <section id="section-create-coupon" class="page-section">
+        <h1 class="section-title">Create Coupon</h1>
+        <div class="form-card">
             <div class="row">
-                <div>
-                    <label>Discount type</label>
+                <div class="form-group"><label>Coupon Code *</label><input id="admin-coupon-code" placeholder="e.g. SUMMER20"></div>
+                <div class="form-group"><label>Description</label><input id="admin-coupon-description" placeholder="What this coupon does"></div>
+            </div>
+            <div class="row">
+                <div class="form-group"><label>Discount Type *</label>
                     <select id="admin-coupon-discount-type">
-                        <option value="UPTO_PERCENT_OFF">UPTO_PERCENT_OFF</option>
-                        <option value="FLAT">FLAT</option>
+                        <option value="UPTO_PERCENT_OFF">Percentage (Up to)</option>
+                        <option value="FLAT">Flat Amount</option>
                     </select>
                 </div>
-                <div>
-                    <label>Scope</label>
+                <div class="form-group"><label>Discount Scope *</label>
                     <select id="admin-coupon-scope">
-                        <option value="CATEGORY">CATEGORY</option>
-                        <option value="CART">CART</option>
-                        <option value="PRODUCT">PRODUCT</option>
+                        <option value="CATEGORY">Category</option>
+                        <option value="CART">Cart</option>
+                        <option value="PRODUCT">Product</option>
                     </select>
                 </div>
             </div>
             <div class="row">
-                <div><label>Value</label><input id="admin-coupon-value" value="15"></div>
-                <div><label>Max discount amount</label><input id="admin-coupon-max" value="500"></div>
+                <div class="form-group"><label>Discount Value *</label><input id="admin-coupon-value" type="number" placeholder="e.g. 10 (for 10% or ₹10)"></div>
+                <div class="form-group"><label>Max Discount (₹)</label><input id="admin-coupon-max" type="number" placeholder="Cap on discount amount"></div>
             </div>
-            <label>Minimum cart amount</label>
-            <input id="admin-coupon-min" value="1000">
-            <label>Starts at</label>
-            <input id="admin-coupon-starts" value="2025-01-01T00:00:00Z">
-            <label>Ends at</label>
-            <input id="admin-coupon-ends" value="2099-12-31T23:59:59Z">
-            <label>Eligible category IDs, comma-separated</label>
-            <input id="admin-coupon-category-ids" value="00000000-0000-0000-0000-000000000100">
-            <button onclick="adminCreateCoupon()">Create coupon</button>
-            <button class="ghost" onclick="adminListCoupons()">List coupons</button>
-        </article>
-
-        <article class="panel">
-            <h2>Response</h2>
-            <div id="admin-output" class="status">Use the actions above to exercise the Product Admin APIs.</div>
-        </article>
+            <div class="form-group"><label>Minimum Cart Amount (₹)</label><input id="admin-coupon-min" type="number" placeholder="Min cart value to use coupon"></div>
+            <div class="row">
+                <div class="form-group"><label>Valid From</label><input id="admin-coupon-starts" type="datetime-local"></div>
+                <div class="form-group"><label>Valid Until</label><input id="admin-coupon-ends" type="datetime-local"></div>
+            </div>
+            <div class="form-group"><label>Eligible Category IDs</label><input id="admin-coupon-category-ids" placeholder="Comma-separated UUIDs"><span class="hint">Categories whose products can use this coupon</span></div>
+            <button onclick="adminCreateCoupon()" class="btn-full">Create Coupon</button>
+            <div id="admin-create-coupon-output" class="form-message"></div>
+        </div>
     </section>
 </main>
+<div id="PRODUCT_ADMIN-auth-bar" style="display:none;"></div>
+<div style="display:none;"><div id="admin-categories-output"></div><div id="admin-coupons-output"></div><div id="admin-output"></div></div>
+<footer class="page-footer"><p>Demo: admin@example.com / Password1</p></footer>
 </body>
 </html>
