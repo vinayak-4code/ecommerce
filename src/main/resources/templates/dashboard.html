@@ -2,39 +2,37 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
-    <title>E-commerce Backend Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ShopEasy - E-Commerce Platform</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
 </head>
-<body>
-<header>
-    <span class="badge">Spring Boot Enterprise Demo</span>
-    <h1>E-commerce backend reviewer dashboard</h1>
-    <p>This Thymeleaf UI gives three separate journeys over the same REST APIs. Each page signs in with the seeded role and stores the returned Bearer token in browser storage.</p>
-</header>
-<main>
-    <section class="nav-grid">
-        <a class="nav-card" th:href="@{/admin}">
-            <strong>🛡 Product Admin</strong>
-            <span class="small">Create categories, sub-classifications, mandatory/optional attributes, and coupons.</span>
+<body class="welcome-page">
+<div class="welcome-container">
+    <div class="welcome-hero">
+        <h1>🛍️ ShopEasy</h1>
+        <p class="welcome-subtitle">Your one-stop e-commerce platform</p>
+    </div>
+    <div class="welcome-cards">
+        <a th:href="@{/customer}" class="welcome-card customer-card">
+            <div class="welcome-card-icon">🛒</div>
+            <h2>Customer</h2>
+            <p>Browse products, add to cart, and place orders</p>
         </a>
-        <a class="nav-card" th:href="@{/seller}">
-            <strong>🏬 Seller</strong>
-            <span class="small">Manage warehouses, products, inventory quantity, and product coupon enrollment.</span>
+        <a th:href="@{/seller}" class="welcome-card seller-card">
+            <div class="welcome-card-icon">🏬</div>
+            <h2>Seller</h2>
+            <p>List products, manage inventory &amp; warehouses</p>
         </a>
-        <a class="nav-card" th:href="@{/customer}">
-            <strong>🛒 Customer</strong>
-            <span class="small">Search products, add to cart, apply a single coupon, and place orders.</span>
+        <a th:href="@{/admin}" class="welcome-card admin-card">
+            <div class="welcome-card-icon">🛡️</div>
+            <h2>Admin</h2>
+            <p>Manage categories, attributes &amp; coupons</p>
         </a>
-    </section>
-    <section class="panel" style="margin-top: 20px;">
-        <h2>Seeded credentials</h2>
-        <p class="small">Password for all seeded users: <strong>Password1</strong></p>
-        <pre>{
-  "PRODUCT_ADMIN": "admin@example.com",
-  "SELLER": "seller@example.com",
-  "CUSTOMER": "customer@example.com"
-}</pre>
-    </section>
-</main>
+    </div>
+    <div class="welcome-footer">
+        <p>Demo credentials — Password for all: <strong>Password1</strong></p>
+        <p>Customer: customer@example.com · Seller: seller@example.com · Admin: admin@example.com</p>
+    </div>
+</div>
 </body>
 </html>

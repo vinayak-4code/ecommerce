@@ -2,60 +2,97 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
-    <title>Customer Shopping Journey</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ShopEasy - Shop Online</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
     <script defer th:src="@{/js/ecommerce-ui.js}"></script>
 </head>
 <body>
-<header>
-    <span class="badge">/customer</span>
-    <h1>Customer shopping journey</h1>
-    <p>Search the product projection, add items to cart, validate live price/inventory, apply one coupon, and place an order.</p>
-    <nav><a th:href="@{/}">← Back to journey selector</a></nav>
-</header>
-<main>
-    <section class="grid">
-        <article class="panel">
-            <h2>Sign in as Customer</h2>
-            <label>Email</label>
-            <input id="CUSTOMER-email" value="customer@example.com">
-            <label>Password</label>
-            <input id="CUSTOMER-password" type="password" value="Password1">
-            <button onclick="login('CUSTOMER','customer-output')">Login</button>
-            <button class="secondary" onclick="logout('CUSTOMER','customer-output')">Logout</button>
-        </article>
+<!-- Top Nav -->
+<nav class="top-nav">
+    <div class="nav-left"><a th:href="@{/customer}" class="nav-logo">🛒 ShopEasy</a></div>
+    <div class="nav-center">
+        <a href="#" onclick="showSection('shop');return false;" class="nav-link active" id="link-shop">Shop</a>
+        <a href="#" onclick="showSection('cart');return false;" class="nav-link" id="link-cart">Cart <span id="nav-cart-badge" class="nav-badge">0</span></a>
+        <a href="#" onclick="showSection('orders');return false;" class="nav-link" id="link-orders">My Orders</a>
+    </div>
+    <div class="nav-right">
+        <span id="customer-nav-user" style="font-size:.85rem;color:rgba(255,255,255,.8);">
+            <a href="#" onclick="showSection('account');return false;" style="color:#fff;text-decoration:none;">Sign In</a>
+        </span>
+    </div>
+</nav>
 
-        <article class="panel">
-            <h2>Search products</h2>
-            <label>Search query</label><input id="customer-search-q" value="demo">
-            <label>Category ID, optional</label><input id="customer-search-category-id" placeholder="00000000-0000-0000-0000-000000000100">
-            <button onclick="customerSearch()">Search catalog</button>
-        </article>
+<main class="main-content">
+    <!-- SECTION: Shop (browsable without login) -->
+    <section id="section-shop" class="page-section active">
+        <div class="search-bar-container">
+            <input id="customer-search-q" placeholder="Search for products..." class="search-input" onkeydown="if(event.key==='Enter')customerSearch()">
+            <button onclick="customerSearch()" class="search-btn">🔍 Search</button>
+        </div>
+        <div id="customer-product-results" class="product-grid">
+            <div class="empty-state"><div class="empty-icon">🛍️</div><div class="empty-title">Loading products...</div></div>
+        </div>
+    </section>
 
-        <article class="panel">
-            <h2>Cart</h2>
-            <label>Product ID</label><input id="customer-cart-product-id" value="00000000-0000-0000-0000-000000003001">
-            <label>Quantity</label><input id="customer-cart-quantity" value="1">
-            <button onclick="customerAddToCart()">Add to cart</button>
-            <button class="ghost" onclick="customerViewCart()">View cart with live price/inventory</button>
-            <label>Coupon code</label><input id="customer-coupon-code" value="ELECTRO10">
-            <button onclick="customerApplyCoupon()">Apply coupon</button>
-            <button class="secondary" onclick="customerRemoveCoupon()">Remove coupon</button>
-        </article>
+    <!-- SECTION: Cart -->
+    <section id="section-cart" class="page-section">
+        <h1 class="section-title">Shopping Cart</h1>
+        <div id="customer-cart-display">
+            <div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-title">Your cart is empty</div><div class="empty-text">Add products from the shop to get started</div></div>
+        </div>
+        <div id="cart-actions" style="display:none;margin-top:20px;">
+            <div class="panel" style="max-width:400px;">
+                <h3>🏷️ Apply Coupon</h3>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <input id="customer-coupon-code" placeholder="Coupon code (e.g. ELECTRO10)" style="flex:1;">
+                    <button onclick="customerApplyCoupon()">Apply</button>
+                </div>
+                <button class="ghost" onclick="customerRemoveCoupon()" style="margin-top:6px;font-size:.8rem;">Remove coupon</button>
+            </div>
+            <div class="panel" style="max-width:400px;margin-top:16px;">
+                <h3>📦 Checkout</h3>
+                <div class="form-group"><label>Shipping Address</label><textarea id="customer-shipping-address" rows="3" placeholder="Enter your full shipping address"></textarea></div>
+                <button onclick="customerPlaceOrder()" class="btn-full">Place Order</button>
+            </div>
+        </div>
+    </section>
 
-        <article class="panel">
-            <h2>Order</h2>
-            <label>Shipping address</label>
-            <textarea id="customer-shipping-address">Demo Customer, 1 Demo Street, Bengaluru, Karnataka, India - 560001</textarea>
-            <button onclick="customerPlaceOrder()">Place order</button>
-            <button class="ghost" onclick="customerListOrders()">List my orders</button>
-        </article>
+    <!-- SECTION: Orders -->
+    <section id="section-orders" class="page-section">
+        <h1 class="section-title">My Orders</h1>
+        <div id="customer-orders-display">
+            <div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Sign in to view your orders</div></div>
+        </div>
+    </section>
 
-        <article class="panel">
-            <h2>Response</h2>
-            <div id="customer-output" class="status">Use the actions above to exercise the customer journey.</div>
-        </article>
+    <!-- SECTION: Account -->
+    <section id="section-account" class="page-section">
+        <h1 class="section-title">My Account</h1>
+        <div id="customer-auth-area"></div>
     </section>
 </main>
+
+<!-- LOGIN POPUP MODAL -->
+<div id="login-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeLoginModal()">✕</button>
+        <h2>Sign In to Continue</h2>
+        <p style="color:var(--muted);margin-bottom:16px;font-size:.9rem;">You need to sign in to perform this action.</p>
+        <div class="form-group"><label>Email</label><input id="modal-login-email" type="email" placeholder="your@email.com"></div>
+        <div class="form-group"><label>Password</label><input id="modal-login-password" type="password" placeholder="Password"></div>
+        <button onclick="modalLogin()" class="btn-full">Sign In</button>
+        <p style="margin-top:12px;font-size:.82rem;color:var(--muted);text-align:center;">Don't have an account? <a href="#" onclick="closeLoginModal();showSection('account');return false;">Sign Up</a></p>
+        <div id="modal-login-error" style="display:none;margin-top:8px;color:var(--danger);font-size:.85rem;"></div>
+    </div>
+</div>
+
+<!-- Hidden state -->
+<div id="CUSTOMER-auth-bar" style="display:none;"></div>
+<div style="display:none;"><div id="customer-search-output"></div><div id="customer-cart-output"></div><div id="customer-orders-output"></div></div>
+
+<footer class="page-footer">
+    <p>Demo: customer@example.com / Password1</p>
+</footer>
 </body>
 </html>

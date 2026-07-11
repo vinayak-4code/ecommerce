@@ -4,8 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Tiny Thymeleaf landing page for reviewers.
- * It is intentionally read-only and points reviewers to the seeded users and curl file.
+ * Thymeleaf page controller for landing, signup, and login pages.
  */
 @Controller
 public class DashboardController {
@@ -15,5 +14,21 @@ public class DashboardController {
     @GetMapping({"/", "/dashboard"})
     public String dashboard() {
         return "dashboard";
+    }
+
+    /**
+     * Renders the signup page for Customer and Seller registration.
+     */
+    @GetMapping("/signup")
+    public String signup() {
+        return "signup";
+    }
+
+    /**
+     * Renders the login page.
+     */
+    @GetMapping("/login")
+    public String login() {
+        return "login";
     }
 }
