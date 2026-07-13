@@ -58,7 +58,7 @@ public class SellerOrderService {
         return orderLineRepository.findSellerLines(productIds, pageable).map(this::toResponse);
     }
 
-    /** Marks one seller-owned order line as shipped. */
+    /** Marks one seller-owned order line as shipped and consumes the reservation. */
     @Transactional
     public SellerOrderLineResponse ship(UUID sellerUserId, UUID lineId) {
         OrderLine line = requireSellerLine(sellerUserId, lineId);
@@ -68,13 +68,18 @@ public class SellerOrderService {
         if (line.getFulfillmentStatus() == FulfillmentStatus.DELIVERED) {
             throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Delivered order line cannot be changed");
         }
+        if (line.getFulfillmentStatus() == FulfillmentStatus.SHIPPED) {
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Order line is already shipped");
+        }
+        // Consume reservation for this specific line: decrement reservedQuantity (stock permanently leaves warehouse)
+        inventoryService.consumeForLine(line.getProductId(), line.getWarehouseId(), line.getQuantity(), line.getOrder().getId());
         line.setFulfillmentStatus(FulfillmentStatus.SHIPPED);
         OrderLine saved = orderLineRepository.save(line);
         refreshOrderStatus(saved.getOrder());
         return toResponse(saved);
     }
 
-    /** Cancels one seller-owned order line and restocks the consumed quantity. */
+    /** Cancels one seller-owned order line and releases the reserved quantity back to available. */
     @Transactional
     public SellerOrderLineResponse cancel(UUID sellerUserId, UUID lineId) {
         OrderLine line = requireSellerLine(sellerUserId, lineId);
@@ -82,7 +87,8 @@ public class SellerOrderService {
             throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Shipped or delivered order line cannot be cancelled by seller");
         }
         if (line.getFulfillmentStatus() != FulfillmentStatus.CANCELLED) {
-            inventoryService.restockConsumedLine(line.getProductId(), line.getWarehouseId(), line.getQuantity(), line.getOrder().getId());
+            // Release reservation for this specific line: move reserved back to available
+            inventoryService.releaseForLine(line.getProductId(), line.getWarehouseId(), line.getQuantity(), line.getOrder().getId());
             line.setFulfillmentStatus(FulfillmentStatus.CANCELLED);
         }
         OrderLine saved = orderLineRepository.save(line);

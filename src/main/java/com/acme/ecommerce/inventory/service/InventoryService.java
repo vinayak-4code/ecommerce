@@ -219,6 +219,62 @@ public class InventoryService {
     }
 
     /**
+     * Consumes reserved inventory for a specific product/warehouse within an order (line-level ship).
+     */
+    @Transactional
+    public void consumeForLine(UUID productId, UUID warehouseId, int quantity, UUID orderId) {
+        List<InventoryReservation> reservations = reservationRepository.findByOrderId(orderId);
+        for (InventoryReservation reservation : reservations) {
+            if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
+                continue;
+            }
+            if (!reservation.getProductId().equals(productId) || !reservation.getWarehouseId().equals(warehouseId)) {
+                continue;
+            }
+            int updated = inventoryItemRepository.consumeReservedQuantity(reservation.getProductId(), reservation.getWarehouseId(), reservation.getQuantity());
+            if (updated == 0) {
+                throw new BusinessException(ErrorCode.INSUFFICIENT_INVENTORY, "Reserved inventory could not be consumed for line");
+            }
+            reservation.setStatus(InventoryReservationStatus.CONSUMED);
+            reservationRepository.save(reservation);
+            domainEventPublisher.publish(reservation.getProductId(), AGGREGATE_TYPE, DomainEventType.INVENTORY_CONSUMED, Map.of(
+                    "productId", reservation.getProductId(),
+                    "warehouseId", reservation.getWarehouseId(),
+                    "quantity", reservation.getQuantity(),
+                    "orderId", orderId
+            ));
+        }
+    }
+
+    /**
+     * Releases reserved inventory for a specific product/warehouse within an order (line-level cancel).
+     */
+    @Transactional
+    public void releaseForLine(UUID productId, UUID warehouseId, int quantity, UUID orderId) {
+        List<InventoryReservation> reservations = reservationRepository.findByOrderId(orderId);
+        for (InventoryReservation reservation : reservations) {
+            if (reservation.getStatus() != InventoryReservationStatus.RESERVED) {
+                continue;
+            }
+            if (!reservation.getProductId().equals(productId) || !reservation.getWarehouseId().equals(warehouseId)) {
+                continue;
+            }
+            int updated = inventoryItemRepository.releaseQuantity(reservation.getProductId(), reservation.getWarehouseId(), reservation.getQuantity());
+            if (updated == 0) {
+                throw new BusinessException(ErrorCode.INSUFFICIENT_INVENTORY, "Reserved inventory could not be released for line");
+            }
+            reservation.setStatus(InventoryReservationStatus.RELEASED);
+            reservationRepository.save(reservation);
+            domainEventPublisher.publish(reservation.getProductId(), AGGREGATE_TYPE, DomainEventType.INVENTORY_RELEASED, Map.of(
+                    "productId", reservation.getProductId(),
+                    "warehouseId", reservation.getWarehouseId(),
+                    "quantity", reservation.getQuantity(),
+                    "orderId", orderId
+            ));
+        }
+    }
+
+    /**
      * Releases reservations back to available inventory for failed/cancelled order flows.
      */
     @Transactional

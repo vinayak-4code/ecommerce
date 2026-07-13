@@ -58,11 +58,16 @@ public class CartPricingService {
         BigDecimal subtotal = MoneyUtil.money(lineDrafts.stream().map(LineDraft::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add));
         Map<UUID, BigDecimal> discountsByProduct = allocateDiscount(cart.getCouponCode(), lineDrafts, subtotal);
         BigDecimal totalDiscount = MoneyUtil.money(discountsByProduct.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+        // Defense-in-depth: total discount must never exceed subtotal
+        totalDiscount = MoneyUtil.min(totalDiscount, subtotal);
         List<CartPricingResult.CartLinePrice> lines = lineDrafts.stream()
                 .map(line -> toPricedLine(line, discountsByProduct.getOrDefault(line.productId(), MoneyUtil.ZERO)))
                 .toList();
         boolean checkoutReady = lines.stream().allMatch(line -> line.stockStatus() == CartItemStockStatus.IN_STOCK);
-        return new CartPricingResult(cart.getId(), lines, cart.getCouponCode(), checkoutReady, subtotal, totalDiscount, MoneyUtil.money(subtotal.subtract(totalDiscount)));
+        BigDecimal totalAmount = MoneyUtil.money(subtotal.subtract(totalDiscount));
+        // Guard: cart total must never go below zero
+        totalAmount = totalAmount.max(BigDecimal.ZERO);
+        return new CartPricingResult(cart.getId(), lines, cart.getCouponCode(), checkoutReady, subtotal, totalDiscount, totalAmount);
     }
 
     private Map<UUID, Product> loadProducts(List<CartItem> items) {
@@ -100,8 +105,17 @@ public class CartPricingService {
         if (couponCode == null || couponCode.isBlank()) {
             return zeroDiscounts;
         }
-        Coupon coupon = couponService.requireActiveByCode(couponCode);
-        couponValidator.validateUsableNow(coupon, subtotal);
+
+        Coupon coupon;
+        try {
+            coupon = couponService.requireActiveByCode(couponCode);
+            couponValidator.validateUsableNow(coupon, subtotal);
+        } catch (BusinessException e) {
+            // Coupon became invalid (expired, deactivated, or subtotal dropped below minimum).
+            // Return zero discounts gracefully so the cart remains viewable.
+            return zeroDiscounts;
+        }
+
         Set<UUID> productIds = lines.stream().map(LineDraft::productId).collect(Collectors.toSet());
         Set<UUID> enrolledProductIds = couponService.enrolledProductIds(coupon.getId(), productIds);
         List<LineDraft> eligibleLines = lines.stream()
@@ -109,11 +123,14 @@ public class CartPricingService {
                 .filter(line -> couponService.isCategoryEligible(coupon, line.categoryId()))
                 .toList();
         if (eligibleLines.isEmpty()) {
-            throw new BusinessException(ErrorCode.COUPON_NOT_APPLICABLE, "Coupon does not apply to any enrolled product in this cart");
+            // No products are eligible — return zero discount instead of blocking cart view
+            return zeroDiscounts;
         }
         BigDecimal eligibleSubtotal = MoneyUtil.money(eligibleLines.stream().map(LineDraft::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add));
         BigDecimal discount = discountStrategyFactory.get(coupon.getDiscountType()).calculate(eligibleSubtotal, coupon);
-        if (discount.compareTo(BigDecimal.ZERO) == 0 || eligibleSubtotal.compareTo(BigDecimal.ZERO) == 0) {
+        // Guard: discount must never exceed eligible subtotal
+        discount = MoneyUtil.min(discount, eligibleSubtotal);
+        if (discount.compareTo(BigDecimal.ZERO) <= 0 || eligibleSubtotal.compareTo(BigDecimal.ZERO) == 0) {
             return zeroDiscounts;
         }
         BigDecimal allocated = MoneyUtil.ZERO;
@@ -122,10 +139,21 @@ public class CartPricingService {
             LineDraft line = eligibleLines.get(index);
             BigDecimal lineDiscount;
             if (index == eligibleLines.size() - 1) {
+                // Last line gets the remainder; clamp to [0, lineSubtotal] to prevent rounding artifacts
                 lineDiscount = MoneyUtil.money(discount.subtract(allocated));
+                lineDiscount = lineDiscount.max(BigDecimal.ZERO);
+                lineDiscount = MoneyUtil.min(lineDiscount, line.subtotal());
             } else {
                 lineDiscount = MoneyUtil.money(discount.multiply(line.subtotal()).divide(eligibleSubtotal, MoneyUtil.SCALE + 4, MoneyUtil.ROUNDING_MODE));
+                // Clamp: individual line discount must not exceed line subtotal
+                lineDiscount = MoneyUtil.min(lineDiscount, line.subtotal());
                 allocated = MoneyUtil.money(allocated.add(lineDiscount));
+                // If rounding caused allocated to reach or exceed total discount, stop allocating
+                if (allocated.compareTo(discount) >= 0) {
+                    lineDiscount = MoneyUtil.money(lineDiscount.subtract(allocated.subtract(discount)));
+                    lineDiscount = lineDiscount.max(BigDecimal.ZERO);
+                    allocated = discount;
+                }
             }
             discounts.put(line.productId(), lineDiscount);
         }
@@ -133,6 +161,9 @@ public class CartPricingService {
     }
 
     private CartPricingResult.CartLinePrice toPricedLine(LineDraft line, BigDecimal discount) {
+        // Guard: line discount must not exceed line subtotal; line total must not go negative
+        BigDecimal safeDiscount = MoneyUtil.min(discount.max(BigDecimal.ZERO), line.subtotal());
+        BigDecimal lineTotal = MoneyUtil.money(line.subtotal().subtract(safeDiscount)).max(BigDecimal.ZERO);
         return new CartPricingResult.CartLinePrice(
                 line.productId(),
                 line.productName(),
@@ -141,8 +172,8 @@ public class CartPricingService {
                 line.stockStatus(),
                 MoneyUtil.money(line.unitPrice()),
                 MoneyUtil.money(line.subtotal()),
-                MoneyUtil.money(discount),
-                MoneyUtil.money(line.subtotal().subtract(discount))
+                MoneyUtil.money(safeDiscount),
+                lineTotal
         );
     }
 

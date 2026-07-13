@@ -136,6 +136,7 @@ public class CartService {
 
     /**
      * Applies a normalized coupon code while enforcing the one-coupon-per-cart rule.
+     * Validates that the coupon is active, within date range, and applicable to cart products.
      */
     @Transactional
     public CartResponse applyCoupon(UUID customerUserId, ApplyCouponRequest request) {
@@ -143,7 +144,10 @@ public class CartService {
         if (cart.getCouponCode() != null && !cart.getCouponCode().isBlank()) {
             throw new BusinessException(ErrorCode.COUPON_NOT_APPLICABLE, "Only one coupon can be applied to a cart");
         }
-        cart.setCouponCode(couponService.normalize(request.code()));
+        String normalizedCode = couponService.normalize(request.code());
+        // Pre-validate coupon before saving to cart — provides clear error messages
+        couponService.validateApplicableToCart(normalizedCode, cart.getId());
+        cart.setCouponCode(normalizedCode);
         Cart saved = cartRepository.save(cart);
         CartResponse response = cartPricingService.price(saved).toResponse();
         domainEventPublisher.publish(saved.getId(), AGGREGATE_TYPE, DomainEventType.CART_COUPON_APPLIED, Map.of(

@@ -336,19 +336,27 @@ function renderCartItems(cart, containerId) {
     container.innerHTML = `<div class="empty-state" style="padding:40px 20px;"><div class="empty-icon">🛒</div><div class="empty-title">Your cart is empty</div><div class="empty-text">Browse products and add items to your cart</div></div>`;
     return;
   }
-  let html = items.map(item => `
+  let html = items.map(item => {
+    const lineSubtotal = Math.max(0, item.subtotal || 0);
+    const lineDiscount = Math.max(0, item.discountAmount || 0);
+    const lineTotal = Math.max(0, (item.totalAmount != null ? item.totalAmount : lineSubtotal - lineDiscount));
+    return `
     <div class="cart-item">
       <div class="item-info">
         <div class="item-name">${escapeHtml(item.productName || 'Product')}</div>
         <div class="item-meta">Qty: ${item.quantity} × ₹${(item.unitPrice||0).toLocaleString('en-IN')} · ${item.stockStatus==='IN_STOCK'?'✅ In Stock':'⚠️ '+item.stockStatus}</div>
       </div>
-      <div class="item-price">₹${(item.subtotal||0).toLocaleString('en-IN')}${item.discountAmount>0?`<br><span style="color:var(--ok);font-size:.8rem;">-₹${item.discountAmount.toLocaleString('en-IN')}</span>`:''}</div>
+      <div class="item-price">₹${lineTotal.toLocaleString('en-IN')}${lineDiscount>0?`<br><span style="color:var(--ok);font-size:.8rem;">-₹${lineDiscount.toLocaleString('en-IN')}</span>`:''}</div>
     </div>
-  `).join('');
+  `}).join('');
+  const cartSubtotal = Math.max(0, cart.subtotal || 0);
+  const cartDiscount = Math.max(0, cart.discountAmount || 0);
+  const cartTotal = Math.max(0, cart.totalAmount || 0);
   html += `<div style="margin-top:16px;padding:16px;background:var(--accent-soft);border-radius:var(--radius-sm);">
-    <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:6px;"><span>Subtotal</span><span>₹${(cart.subtotal||0).toLocaleString('en-IN')}</span></div>
-    ${cart.discountAmount>0?`<div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--ok);margin-bottom:6px;"><span>Discount${cart.couponCode?' ('+cart.couponCode+')':''}</span><span>-₹${cart.discountAmount.toLocaleString('en-IN')}</span></div>`:''}
-    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;border-top:1px solid var(--accent-light);padding-top:10px;margin-top:10px;"><span>Total</span><span>₹${(cart.totalAmount||0).toLocaleString('en-IN')}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:6px;"><span>Subtotal</span><span>₹${cartSubtotal.toLocaleString('en-IN')}</span></div>
+    ${cartDiscount>0?`<div style="display:flex;justify-content:space-between;font-size:.9rem;color:var(--ok);margin-bottom:6px;"><span>Discount${cart.couponCode?' ('+cart.couponCode+')':''}</span><span>-₹${cartDiscount.toLocaleString('en-IN')}</span></div>`:''}
+    ${cart.couponCode&&cartDiscount===0?`<div style="font-size:.82rem;color:var(--warning);margin-bottom:6px;">⚠️ Coupon "${escapeHtml(cart.couponCode)}" is not providing a discount.</div>`:''}
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;border-top:1px solid var(--accent-light);padding-top:10px;margin-top:10px;"><span>Total</span><span>₹${cartTotal.toLocaleString('en-IN')}</span></div>
     ${cart.checkoutReady?'<div style="margin-top:8px;font-size:.82rem;color:var(--ok);">✅ Ready for checkout</div>':'<div style="margin-top:8px;font-size:.82rem;color:var(--warning);">⚠️ Check item availability</div>'}
   </div>`;
   container.innerHTML = html;

@@ -14,7 +14,7 @@ import java.util.UUID;
 public interface ProductSearchDocumentRepository extends JpaRepository<ProductSearchDocument, UUID> {
     @Query("""
             select d from ProductSearchDocument d
-            where (:query is null or lower(d.name) like lower(concat('%', :query, '%')) or lower(d.description) like lower(concat('%', :query, '%')))
+            where (:query is null or lower(d.name) like lower(concat('%', cast(:query as string), '%')) or lower(d.description) like lower(concat('%', cast(:query as string), '%')))
               and (:status is null or d.status = :status)
             """)
     Page<ProductSearchDocument> searchAllCategories(
@@ -25,7 +25,7 @@ public interface ProductSearchDocumentRepository extends JpaRepository<ProductSe
 
     @Query("""
             select d from ProductSearchDocument d
-            where (:query is null or lower(d.name) like lower(concat('%', :query, '%')) or lower(d.description) like lower(concat('%', :query, '%')))
+            where (:query is null or lower(d.name) like lower(concat('%', cast(:query as string), '%')) or lower(d.description) like lower(concat('%', cast(:query as string), '%')))
               and d.categoryId in :categoryIds
               and (:status is null or d.status = :status)
             """)

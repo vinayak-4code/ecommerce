@@ -87,7 +87,8 @@ public class OrderService {
             lines.addAll(toOrderLines(savedOrder, pricedLine, allocations));
         }
         orderLineRepository.saveAll(lines);
-        inventoryService.consumeByOrderId(savedOrder.getId());
+        // Reservation stays active (reservedQuantity > 0) until seller ships or cancels.
+        // This allows the seller to see reserved stock in their inventory dashboard.
         savedOrder.setStatus(OrderStatus.PLACED);
         CustomerOrder placedOrder = orderRepository.save(savedOrder);
         cartService.markOrderedAndClear(cart);

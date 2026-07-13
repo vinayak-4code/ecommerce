@@ -2,51 +2,189 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Product Admin Console | VinCommerce</title>
+    <title>Product Admin | VinCommerce</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
     <script defer th:src="@{/js/portal.js}"></script>
 </head>
 <body data-page="admin" onload="initAdminConsole()">
+<!-- ===== TOP NAV HEADER ===== -->
+<header class="site-header">
+    <div class="site-header-inner">
+        <a href="/" class="header-brand"><span>VC</span> VinCommerce</a>
+        <nav class="header-nav">
+            <a href="/">🏠 Home</a>
+            <a href="/customer/dashboard">🛍 Store</a>
+            <a href="/seller/dashboard">🏬 Seller</a>
+            <a href="/admin/dashboard" class="active">⚙️ Admin</a>
+        </nav>
+    </div>
+</header>
 <div class="workspace admin-workspace">
     <aside class="sidebar">
-        <a class="brand side-brand" href="/">🛡️ Product Admin</a>
-        <div class="side-user"><span id="admin-email">admin</span></div>
-        <button data-section="admin-overview" class="side-link active">Overview</button>
-        <button data-section="admin-categories" class="side-link">Categories & Attributes</button>
-        <button data-section="admin-coupons" class="side-link">Coupons</button>
-        <button class="side-link danger" onclick="logoutRole('PRODUCT_ADMIN')">Logout</button>
+        <a class="brand side-brand" href="/">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:.72rem;font-weight:900;">PA</span>
+            Product Admin
+        </a>
+        <div class="side-user">
+            <strong>Administrator</strong>
+            <span id="admin-email" class="small">admin</span>
+        </div>
+        <button data-section="admin-overview" class="side-link active">📊 Overview</button>
+        <button data-section="admin-categories" class="side-link">📁 Categories & Attributes</button>
+        <button data-section="admin-coupons" class="side-link">🏷️ Coupons</button>
+        <button class="side-link danger" onclick="logoutRole('PRODUCT_ADMIN')">🚪 Sign out</button>
     </aside>
     <main class="workspace-main">
-        <header class="workspace-topbar"><div><span class="eyebrow">Catalog governance</span><h1 id="console-title">Overview</h1></div><button class="btn-primary" onclick="openCouponModal()">Create coupon</button></header>
+        <header class="workspace-topbar">
+            <div>
+                <span class="eyebrow">Catalog governance</span>
+                <h1 id="console-title">Overview</h1>
+            </div>
+            <button class="btn-primary" onclick="openCouponModal()">🏷️ Create coupon</button>
+        </header>
 
         <section id="admin-overview" class="console-section active">
             <div class="stat-grid four">
-                <div class="stat-card"><span>Total categories</span><strong id="admin-stat-categories">0</strong></div>
-                <div class="stat-card"><span>Leaf categories</span><strong id="admin-stat-leaves">0</strong></div>
-                <div class="stat-card"><span>Attributes</span><strong id="admin-stat-attributes">0</strong></div>
-                <div class="stat-card"><span>Coupons</span><strong id="admin-stat-coupons">0</strong></div>
+                <div class="stat-card"><span>📁 Total categories</span><strong id="admin-stat-categories">0</strong></div>
+                <div class="stat-card"><span>🍃 Leaf categories</span><strong id="admin-stat-leaves">0</strong></div>
+                <div class="stat-card"><span>🔧 Attributes</span><strong id="admin-stat-attributes">0</strong></div>
+                <div class="stat-card"><span>🏷️ Coupons</span><strong id="admin-stat-coupons">0</strong></div>
             </div>
-            <div class="quick-grid"><button onclick="showConsoleSection('admin-categories');openCategoryModal()" class="quick-card">➕ Create category</button><button onclick="showConsoleSection('admin-coupons');openCouponModal()" class="quick-card">🏷️ Create coupon</button></div>
+            <div class="quick-grid">
+                <button onclick="showConsoleSection('admin-categories');openCategoryModal()" class="quick-card">
+                    <span style="font-size:1.5rem;margin-right:8px;">📁</span> Create new category
+                </button>
+                <button onclick="showConsoleSection('admin-coupons');openCouponModal()" class="quick-card">
+                    <span style="font-size:1.5rem;margin-right:8px;">🏷️</span> Create new coupon
+                </button>
+            </div>
         </section>
 
         <section id="admin-categories" class="console-section">
-            <div class="section-title-row"><div><span class="eyebrow">Classification</span><h2>Category tree</h2><p class="muted">Attributes can be added only to final child categories.</p></div><button onclick="openCategoryModal()">Create category</button></div>
-            <div class="admin-category-layout"><div class="management-card"><div id="admin-category-tree" class="admin-tree"></div></div><div id="admin-category-detail" class="management-card detail-panel"><div class="empty-state"><strong>Select a category</strong><span>Choose a card to view sub-categories and attributes.</span></div></div></div>
+            <div class="admin-cat-header">
+                <div class="admin-cat-header-left">
+                    <div class="admin-cat-icon-wrap"><span>📁</span></div>
+                    <div>
+                        <span class="eyebrow">Classification</span>
+                        <h2 style="margin:2px 0 0;font-size:1.5rem;letter-spacing:-.04em;">Category tree</h2>
+                    </div>
+                </div>
+                <div class="admin-cat-header-actions">
+                    <div class="admin-cat-search-box">
+                        <input id="admin-cat-search" type="text" placeholder="Search categories…" oninput="filterAdminCategoryTree(this.value)">
+                        <span class="admin-cat-search-icon">🔍</span>
+                    </div>
+                    <button class="btn-primary" onclick="openCategoryModal()">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+                        New category
+                    </button>
+                </div>
+            </div>
+            <div class="admin-cat-stats-strip">
+                <div class="admin-cat-mini-stat">
+                    <span class="admin-cat-mini-icon" style="background:var(--primary-soft);color:var(--primary);">📂</span>
+                    <div><strong id="admin-cat-total">0</strong><span>Total</span></div>
+                </div>
+                <div class="admin-cat-mini-stat">
+                    <span class="admin-cat-mini-icon" style="background:#ecfdf5;color:#059669;">🌿</span>
+                    <div><strong id="admin-cat-leaves">0</strong><span>Leaf</span></div>
+                </div>
+                <div class="admin-cat-mini-stat">
+                    <span class="admin-cat-mini-icon" style="background:#fef3c7;color:#d97706;">🔗</span>
+                    <div><strong id="admin-cat-parents">0</strong><span>Parent</span></div>
+                </div>
+                <div class="admin-cat-mini-stat">
+                    <span class="admin-cat-mini-icon" style="background:#ede9fe;color:#7c3aed;">🔧</span>
+                    <div><strong id="admin-cat-attrs">0</strong><span>Attributes</span></div>
+                </div>
+            </div>
+            <p class="muted small" style="margin-bottom:18px;">Tip: Attributes can only be attached to leaf categories (categories with no children).</p>
+            <div class="admin-category-layout">
+                <div class="admin-cat-tree-panel">
+                    <div class="admin-cat-tree-header">
+                        <strong>Hierarchy</strong>
+                        <span id="admin-cat-tree-count" class="admin-cat-tree-badge">0</span>
+                    </div>
+                    <div id="admin-category-tree" class="admin-tree"></div>
+                </div>
+                <div id="admin-category-detail" class="admin-cat-detail-panel">
+                    <div class="admin-cat-empty-detail">
+                        <div class="admin-cat-empty-icon">📁</div>
+                        <strong>Select a category</strong>
+                        <span>Choose a category from the tree to view and manage its attributes.</span>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <section id="admin-coupons" class="console-section">
-            <div class="section-title-row"><div><span class="eyebrow">Promotions</span><h2>Coupon definitions</h2><p class="muted">Dates control scheduled/live/expired status.</p></div><button onclick="openCouponModal()">Create coupon</button></div>
-            <div id="coupon-status-tabs" class="pill-tabs"><button class="pill-tab active" onclick="setCouponFilter('ALL',this)">All</button><button class="pill-tab" onclick="setCouponFilter('LIVE',this)">Live</button><button class="pill-tab" onclick="setCouponFilter('SCHEDULED',this)">Scheduled</button><button class="pill-tab" onclick="setCouponFilter('EXPIRED',this)">Expired</button></div>
-            <div id="admin-coupon-list" class="coupon-grid management-grid"></div>
+            <div class="admin-coupon-header">
+                <div class="admin-coupon-header-left">
+                    <div class="admin-coupon-icon-wrap"><span>🏷️</span></div>
+                    <div>
+                        <span class="eyebrow">Promotions</span>
+                        <h2 style="margin:2px 0 0;font-size:1.5rem;letter-spacing:-.04em;">Coupon management</h2>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="openCouponModal()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
+                    New coupon
+                </button>
+            </div>
+            <div class="admin-coupon-stats">
+                <div class="admin-coupon-stat-card stat-live">
+                    <div class="admin-coupon-stat-dot live"></div>
+                    <div class="admin-coupon-stat-info">
+                        <strong id="admin-coupon-stat-live">0</strong>
+                        <span>Live</span>
+                    </div>
+                </div>
+                <div class="admin-coupon-stat-card stat-scheduled">
+                    <div class="admin-coupon-stat-dot scheduled"></div>
+                    <div class="admin-coupon-stat-info">
+                        <strong id="admin-coupon-stat-scheduled">0</strong>
+                        <span>Scheduled</span>
+                    </div>
+                </div>
+                <div class="admin-coupon-stat-card stat-expired">
+                    <div class="admin-coupon-stat-dot expired"></div>
+                    <div class="admin-coupon-stat-info">
+                        <strong id="admin-coupon-stat-expired">0</strong>
+                        <span>Expired</span>
+                    </div>
+                </div>
+                <div class="admin-coupon-stat-card stat-total">
+                    <div class="admin-coupon-stat-dot total"></div>
+                    <div class="admin-coupon-stat-info">
+                        <strong id="admin-coupon-stat-total">0</strong>
+                        <span>Total</span>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-coupon-toolbar">
+                <div id="coupon-status-tabs" class="pill-tabs">
+                    <button class="pill-tab active" onclick="setCouponFilter('ALL',this)">All</button>
+                    <button class="pill-tab" onclick="setCouponFilter('LIVE',this)">🟢 Live</button>
+                    <button class="pill-tab" onclick="setCouponFilter('SCHEDULED',this)">🟡 Scheduled</button>
+                    <button class="pill-tab" onclick="setCouponFilter('EXPIRED',this)">🔴 Expired</button>
+                </div>
+                <div class="admin-coupon-search-box">
+                    <input id="admin-coupon-search" type="text" placeholder="Search coupons…" oninput="filterAdminCoupons(this.value)">
+                    <span class="admin-coupon-search-icon">🔍</span>
+                </div>
+            </div>
+            <div id="admin-coupon-list" class="admin-coupon-grid"></div>
         </section>
     </main>
 </div>
 
-<div id="category-modal" class="modal"><div class="modal-card"><button class="modal-x" onclick="closeModal('category-modal')">✕</button><h2 id="category-modal-title">Create category</h2><input type="hidden" id="admin-edit-category-id"><div class="form-field"><label>Name</label><input id="admin-category-name" placeholder="Mobile Phones"></div><div class="form-field"><label>Parent category</label><select id="admin-category-parent"></select><span class="field-hint">Leave empty for a root category.</span></div><button class="btn-primary btn-full" onclick="saveCategoryFromModal()">Save category</button></div></div>
 
-<div id="attribute-modal" class="modal"><div class="modal-card wide-modal"><button class="modal-x" onclick="closeModal('attribute-modal')">✕</button><h2>Add attribute</h2><input type="hidden" id="attribute-category-id"><div class="form-grid two"><div class="form-field"><label>Attribute code</label><input id="attr-code" placeholder="ram"></div><div class="form-field"><label>Label text</label><input id="attr-label" placeholder="RAM"></div><div class="form-field"><label>Data type</label><select id="attr-type" onchange="renderAttributeConstraintHelp()"><option value="STRING">Text</option><option value="NUMBER">Number</option><option value="DECIMAL">Decimal</option><option value="BOOLEAN">Boolean</option><option value="SELECT">Select</option><option value="MULTI_SELECT">Multi select</option></select></div><div class="form-field"><label>Allowed values</label><input id="attr-values" placeholder="4GB,8GB,16GB"></div><div class="form-field"><label>Min</label><input id="attr-min" type="number"></div><div class="form-field"><label>Max</label><input id="attr-max" type="number"></div></div><p id="attr-constraint-help" class="field-hint"></p><label class="check-row"><input id="attr-required" type="checkbox"> Mandatory</label><label class="check-row"><input id="attr-visible" type="checkbox" checked> Visible to customer</label><button class="btn-primary btn-full" onclick="saveAttributeFromModal()">Save attribute</button></div></div>
+<!-- ===== MODALS ===== -->
+<div id="category-modal" class="modal"><div class="modal-card"><button class="modal-x" onclick="closeModal('category-modal')">✕</button><h2 id="category-modal-title">Create category</h2><input type="hidden" id="admin-edit-category-id"><div class="form-field"><label>Category name</label><input id="admin-category-name" placeholder="e.g. Mobile Phones"></div><div class="form-field"><label>Parent category</label><select id="admin-category-parent"></select><span class="field-hint">Leave empty for a root category.</span></div><button class="btn-primary btn-full" onclick="saveCategoryFromModal()">💾 Save category</button></div></div>
 
-<div id="coupon-modal" class="modal"><div class="modal-card wide-modal"><button class="modal-x" onclick="closeModal('coupon-modal')">✕</button><h2 id="coupon-modal-title">Create coupon</h2><input type="hidden" id="coupon-id"><div class="form-grid two"><div class="form-field"><label>Coupon code</label><input id="coupon-code" placeholder="ELECTRO10"></div><div class="form-field"><label>Discount type</label><select id="coupon-type" onchange="renderCouponTypeFields()"><option value="UPTO_PERCENT_OFF">UPTO % OFF</option><option value="FLAT">Flat amount</option></select></div><div class="form-field"><label>Description</label><input id="coupon-description" placeholder="10% off electronics"></div><div class="form-field"><label>Scope</label><select id="coupon-scope"><option value="CATEGORY">Category</option><option value="CART">Cart</option><option value="PRODUCT">Product</option></select></div><div class="form-field"><label id="coupon-value-label">Percentage</label><input id="coupon-value" type="number" step="0.01"></div><div class="form-field" id="coupon-max-field"><label>Max discount cap</label><input id="coupon-max" type="number" step="0.01"></div><div class="form-field"><label>Minimum cart amount</label><input id="coupon-min-cart" type="number" step="0.01" value="0"></div><div class="form-field"><label>Live from</label><input id="coupon-starts" type="datetime-local"></div><div class="form-field"><label>Expires at</label><input id="coupon-ends" type="datetime-local"></div></div><h3>Eligible categories</h3><div id="coupon-category-checks" class="check-grid"></div><button class="btn-primary btn-full" onclick="saveCouponFromModal()">Save coupon</button></div></div>
+<div id="attribute-modal" class="modal"><div class="modal-card wide-modal"><button class="modal-x" onclick="closeModal('attribute-modal')">✕</button><h2>🔧 Add attribute</h2><input type="hidden" id="attribute-category-id"><div class="form-grid two"><div class="form-field"><label>Attribute code</label><input id="attr-code" placeholder="ram"></div><div class="form-field"><label>Label text</label><input id="attr-label" placeholder="RAM"></div><div class="form-field"><label>Data type</label><select id="attr-type" onchange="renderAttributeConstraintHelp()"><option value="STRING">Text</option><option value="NUMBER">Number</option><option value="DECIMAL">Decimal</option><option value="BOOLEAN">Boolean</option><option value="SELECT">Select</option><option value="MULTI_SELECT">Multi select</option></select></div><div class="form-field"><label>Allowed values</label><input id="attr-values" placeholder="4GB, 8GB, 16GB"></div><div class="form-field"><label>Min</label><input id="attr-min" type="number"></div><div class="form-field"><label>Max</label><input id="attr-max" type="number"></div></div><p id="attr-constraint-help" class="field-hint"></p><label class="check-row"><input id="attr-required" type="checkbox"> Mandatory attribute</label><label class="check-row"><input id="attr-visible" type="checkbox" checked> Visible to customers</label><button class="btn-primary btn-full" onclick="saveAttributeFromModal()">💾 Save attribute</button></div></div>
+
+<div id="coupon-modal" class="modal"><div class="modal-card wide-modal"><button class="modal-x" onclick="closeModal('coupon-modal')">✕</button><h2 id="coupon-modal-title">🏷️ Create coupon</h2><input type="hidden" id="coupon-id"><div class="form-grid two"><div class="form-field"><label>Coupon code</label><input id="coupon-code" placeholder="ELECTRO10"></div><div class="form-field"><label>Discount type</label><select id="coupon-type" onchange="renderCouponTypeFields()"><option value="UPTO_PERCENT_OFF">Percentage (up to cap)</option><option value="FLAT">Flat amount</option></select></div><div class="form-field"><label>Description</label><input id="coupon-description" placeholder="10% off electronics"></div><div class="form-field"><label>Scope</label><select id="coupon-scope"><option value="CATEGORY">Category</option><option value="CART">Cart</option><option value="PRODUCT">Product</option></select></div><div class="form-field"><label id="coupon-value-label">Percentage</label><input id="coupon-value" type="number" step="0.01"></div><div class="form-field" id="coupon-max-field"><label>Max discount cap (₹)</label><input id="coupon-max" type="number" step="0.01"></div><div class="form-field"><label>Min cart amount (₹)</label><input id="coupon-min-cart" type="number" step="0.01" value="0"></div><div class="form-field"><label>Live from</label><input id="coupon-starts" type="datetime-local"></div><div class="form-field"><label>Expires at</label><input id="coupon-ends" type="datetime-local"></div></div><h3 style="margin-top:8px;">📁 Eligible categories</h3><div id="coupon-category-checks" class="check-grid"></div><button class="btn-primary btn-full" onclick="saveCouponFromModal()">💾 Save coupon</button></div></div>
 <div id="toast" class="toast hidden"></div>
 </body>
 </html>

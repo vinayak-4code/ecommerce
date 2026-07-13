@@ -199,14 +199,19 @@ public class CouponService {
 
     /**
      * Returns coupons applicable to the current cart lines with estimated savings.
+     * Also includes "almost eligible" coupons where the minimum cart amount isn't met,
+     * so the UI can show what's needed to unlock them.
      */
     @Transactional(readOnly = true)
     public java.util.List<EligibleCouponResponse> eligibleForCart(Map<UUID, Product> productsById, Map<UUID, BigDecimal> subtotalByProductId, BigDecimal cartSubtotal) {
         if (productsById == null || productsById.isEmpty()) {
             return java.util.List.of();
         }
+        Instant now = Instant.now();
         return couponRepository.findAll().stream()
-                .filter(coupon -> isCurrentlyUsable(coupon, cartSubtotal))
+                .filter(coupon -> coupon.getStatus() == com.acme.ecommerce.coupon.enums.CouponStatus.ACTIVE
+                        && !coupon.getStartsAt().isAfter(now)
+                        && !coupon.getEndsAt().isBefore(now))
                 .map(coupon -> {
                     BigDecimal eligibleSubtotal = subtotalByProductId.entrySet().stream()
                             .filter(entry -> enrollmentRepository.existsByCouponIdAndProductId(coupon.getId(), entry.getKey()))
@@ -216,7 +221,33 @@ public class CouponService {
                             })
                             .map(Map.Entry::getValue)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
-                    return eligibleSubtotal.compareTo(BigDecimal.ZERO) > 0 ? toEligibleResponse(coupon, eligibleSubtotal) : null;
+                    if (eligibleSubtotal.compareTo(BigDecimal.ZERO) <= 0) {
+                        return null; // No enrolled products in cart for this coupon
+                    }
+                    // Check if min cart amount is met
+                    boolean meetsMinCart = coupon.getMinCartAmount() == null
+                            || cartSubtotal.compareTo(coupon.getMinCartAmount()) >= 0;
+                    if (meetsMinCart) {
+                        return toEligibleResponse(coupon, eligibleSubtotal);
+                    } else {
+                        // Return as "not yet eligible" with reason
+                        BigDecimal shortfall = MoneyUtil.money(coupon.getMinCartAmount().subtract(cartSubtotal));
+                        return new EligibleCouponResponse(
+                                coupon.getId(),
+                                coupon.getCode(),
+                                coupon.getDescription(),
+                                coupon.getDiscountType(),
+                                coupon.getValue(),
+                                coupon.getMaxDiscountAmount(),
+                                coupon.getMinCartAmount(),
+                                coupon.getStartsAt(),
+                                coupon.getEndsAt(),
+                                lifecycleStatus(coupon),
+                                BigDecimal.ZERO,
+                                false,
+                                "Add ₹" + shortfall.toPlainString() + " more to unlock this coupon"
+                        );
+                    }
                 })
                 .filter(java.util.Objects::nonNull)
                 .toList();
@@ -253,6 +284,25 @@ public class CouponService {
         return code.trim().toUpperCase(Locale.ROOT);
     }
 
+    /**
+     * Validates that a coupon is currently applicable before saving to cart.
+     * This provides explicit error messages when a customer tries to apply an invalid coupon.
+     */
+    @Transactional(readOnly = true)
+    public void validateApplicableToCart(String couponCode, UUID cartId) {
+        Coupon coupon = requireActiveByCode(couponCode);
+        Instant now = Instant.now();
+        if (coupon.getStatus() != com.acme.ecommerce.coupon.enums.CouponStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.COUPON_NOT_APPLICABLE, "Coupon is not active");
+        }
+        if (coupon.getStartsAt().isAfter(now)) {
+            throw new BusinessException(ErrorCode.COUPON_NOT_APPLICABLE, "Coupon is not live yet");
+        }
+        if (coupon.getEndsAt().isBefore(now)) {
+            throw new BusinessException(ErrorCode.COUPON_NOT_APPLICABLE, "Coupon has expired");
+        }
+    }
+
     private void applyDefinition(Coupon coupon, String code, String description, DiscountType discountType,
                                  DiscountScope discountScope, java.math.BigDecimal value,
                                  java.math.BigDecimal maxDiscountAmount, java.math.BigDecimal minCartAmount,
@@ -277,6 +327,7 @@ public class CouponService {
 
     private void replaceCategoryEligibility(Coupon coupon, Set<UUID> categoryIds) {
         categoryEligibilityRepository.deleteByCouponId(coupon.getId());
+        categoryEligibilityRepository.flush();
         if (categoryIds == null || categoryIds.isEmpty()) {
             return;
         }

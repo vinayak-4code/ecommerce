@@ -3,96 +3,163 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>VinCommerce | Demo Storefront</title>
+    <title>VinCommerce | Shop Electronics, Apparel & More</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
     <script defer th:src="@{/js/portal.js}"></script>
 </head>
 <body data-page="storefront" onload="initStorefront()">
+
+<!-- ===== HEADER ===== -->
 <header class="store-header">
-    <a class="brand" href="/">🛍️ VinCommerce</a>
+    <a class="brand" href="/">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:.82rem;font-weight:900;">VC</span>
+        VinCommerce
+    </a>
     <div class="header-search">
-        <input id="public-search" placeholder="Search mobiles, laptops, apparel..." onkeydown="if(event.key==='Enter') searchPublicCatalog()">
-        <button class="btn-primary" onclick="searchPublicCatalog()">Search</button>
+        <input id="public-search" placeholder="Search for phones, laptops, apparel and more..." onkeydown="if(event.key==='Enter') searchPublicCatalog()">
+        <button class="btn-primary" onclick="searchPublicCatalog()">🔍 Search</button>
     </div>
     <nav class="header-actions">
         <a href="#catalog">Products</a>
         <a href="#deals">Deals</a>
         <a id="customer-entry-link" href="/customer/login">Login</a>
-        <button class="cart-button" onclick="openCustomerCart()">Cart <span id="public-cart-count">0</span></button>
-        <a href="/seller/login">Seller</a>
-        <a href="/admin/login">Admin</a>
+        <button class="cart-button" onclick="openCustomerCart()">🛒 Cart <span id="public-cart-count">0</span></button>
+        <a href="/seller/login" style="font-size:.8rem;opacity:.7;">Seller</a>
+        <a href="/admin/login" style="font-size:.8rem;opacity:.7;">Admin</a>
     </nav>
 </header>
 
 <main>
+    <!-- ===== HERO ===== -->
     <section class="hero-market">
         <div class="hero-copy">
-            <span class="eyebrow">Enterprise commerce demo</span>
-            <h1>Shop products before login. Sign in only when you are ready to buy.</h1>
-            <p>Public catalog browsing, category discovery, coupons, cart validation, and order placement in one clean flow.</p>
+            <span class="eyebrow">Enterprise e-commerce platform</span>
+            <h1>Discover products you'll love.</h1>
+            <p>Browse the catalog without signing in. Create an account only when you're ready to checkout.</p>
             <div class="hero-actions">
-                <a class="btn-primary" href="#catalog">Explore products</a>
-                <a class="btn-ghost" href="/customer/signup">Create customer account</a>
+                <a class="btn-primary" href="#catalog" style="font-size:.95rem;padding:14px 28px;">🛍️ Explore catalog</a>
+                <a class="btn-ghost" href="/customer/signup">Create free account</a>
+            </div>
+            <!-- Trust badges -->
+            <div style="display:flex;gap:24px;margin-top:32px;position:relative;z-index:1;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:#c7d2fe;">
+                    <span style="font-size:1.2rem;">🔒</span> Secure checkout
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:#c7d2fe;">
+                    <span style="font-size:1.2rem;">🚚</span> Fast delivery
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:#c7d2fe;">
+                    <span style="font-size:1.2rem;">💳</span> Easy returns
+                </div>
             </div>
         </div>
         <div class="hero-panel">
-            <h3>Live offers</h3>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                <span style="font-size:1.3rem;">🏷️</span>
+                <h3 style="margin:0;font-size:1rem;">Today's best offers</h3>
+            </div>
             <div id="hero-offer-list" class="offer-stack"></div>
         </div>
     </section>
 
+    <!-- ===== CATEGORIES ===== -->
     <section class="section-block">
         <div class="section-title-row">
             <div>
-                <span class="eyebrow">Categories</span>
-                <h2>Shop by classification</h2>
+                <span class="eyebrow">Browse by</span>
+                <h2>Shop by category</h2>
             </div>
-            <button class="btn-ghost" onclick="clearPublicFilters()">Clear filters</button>
+            <button class="btn-ghost btn-sm" onclick="clearPublicFilters()">✕ Clear filters</button>
         </div>
         <div id="public-category-strip" class="category-strip"></div>
     </section>
 
+    <!-- ===== CATALOG ===== -->
     <section id="catalog" class="market-layout section-block">
         <aside class="filter-panel">
-            <h3>Categories</h3>
+            <h3>📁 Categories</h3>
             <div id="public-category-tree" class="tree-list"></div>
-            <h3>Attributes</h3>
+            <h3>🔧 Attributes</h3>
             <div id="public-attribute-filters"></div>
-            <label class="check-row"><input id="public-instock-only" type="checkbox" onchange="renderPublicCatalog()"> In stock only</label>
+            <label class="check-row">
+                <input id="public-instock-only" type="checkbox" onchange="renderPublicCatalog()"> In stock only
+            </label>
         </aside>
         <section class="catalog-panel">
             <div class="section-title-row">
                 <div>
                     <span class="eyebrow">Product catalog</span>
                     <h2>Products for you</h2>
-                    <p id="public-result-subtitle" class="muted">Loading products...</p>
+                    <p id="public-result-subtitle" class="muted small">Loading products...</p>
                 </div>
-                <select id="public-sort" onchange="searchPublicCatalog()">
-                    <option value="name|ASC">Sort: Name</option>
-                    <option value="price|ASC">Price: Low to High</option>
-                    <option value="price|DESC">Price: High to Low</option>
-                    <option value="totalAvailableQuantity|DESC">Availability</option>
+                <select id="public-sort" onchange="searchPublicCatalog()" style="max-width:200px;">
+                    <option value="name|ASC">Name: A → Z</option>
+                    <option value="price|ASC">Price: Low → High</option>
+                    <option value="price|DESC">Price: High → Low</option>
+                    <option value="totalAvailableQuantity|DESC">Most Available</option>
                 </select>
             </div>
             <div id="public-product-grid" class="product-grid market-grid"></div>
         </section>
     </section>
 
+    <!-- ===== DEALS ===== -->
     <section id="deals" class="section-block">
-        <div class="section-title-row"><div><span class="eyebrow">Promotions</span><h2>Available coupons</h2></div></div>
+        <div class="section-title-row">
+            <div>
+                <span class="eyebrow">Promotions</span>
+                <h2>🎉 Available coupons</h2>
+                <p class="muted small">Add products to cart and apply at checkout</p>
+            </div>
+        </div>
         <div id="public-coupon-strip" class="coupon-grid"></div>
     </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer style="max-width:1280px;margin:48px auto 0;padding:32px;border-top:1px solid var(--line);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div>
+                <div class="brand" style="margin-bottom:6px;">
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:.72rem;font-weight:900;">VC</span>
+                    VinCommerce
+                </div>
+                <p class="muted small">Enterprise e-commerce demo platform</p>
+            </div>
+            <div style="display:flex;gap:24px;">
+                <a href="/seller/login" class="muted small" style="font-weight:600;">Seller Center</a>
+                <a href="/admin/login" class="muted small" style="font-weight:600;">Admin Console</a>
+                <a href="/customer/login" class="muted small" style="font-weight:600;">My Account</a>
+            </div>
+        </div>
+    </footer>
 </main>
 
+<!-- ===== CART DRAWER ===== -->
+<div id="drawer-backdrop" class="drawer-backdrop" onclick="closeDrawer('cart-drawer')"></div>
 <div id="cart-drawer" class="drawer right-drawer">
-    <div class="drawer-header"><h2>Your cart</h2><button onclick="closeDrawer('cart-drawer')">✕</button></div>
+    <div class="drawer-header"><h2>🛒 Your Cart</h2><button onclick="closeDrawer('cart-drawer')">✕</button></div>
     <div id="cart-body" class="drawer-body"></div>
     <div id="cart-coupons" class="drawer-body"></div>
     <div id="cart-summary" class="drawer-footer"></div>
 </div>
 
+<!-- ===== MODALS ===== -->
 <div id="product-modal" class="modal"><div class="modal-card product-modal-card"><button class="modal-x" onclick="closeModal('product-modal')">✕</button><div id="product-modal-body"></div></div></div>
-<div id="login-required-modal" class="modal"><div class="modal-card small-modal"><button class="modal-x" onclick="closeModal('login-required-modal')">✕</button><h2>Login required</h2><p id="login-required-message" class="muted">Please login to continue.</p><div class="stack-actions"><a class="btn-primary" href="/customer/login">Customer login</a><a class="btn-ghost" href="/customer/signup">Create account</a><button class="btn-ghost" onclick="closeModal('login-required-modal')">Continue browsing</button></div></div></div>
+<div id="login-required-modal" class="modal">
+    <div class="modal-card small-modal">
+        <button class="modal-x" onclick="closeModal('login-required-modal')">✕</button>
+        <div style="text-align:center;padding:12px 0;">
+            <div style="font-size:3rem;margin-bottom:12px;">🔐</div>
+            <h2 style="margin:0 0 8px;">Sign in to continue</h2>
+            <p id="login-required-message" class="muted" style="margin:0 0 24px;">Please login to add items to your cart.</p>
+            <div class="stack-actions">
+                <a class="btn-primary btn-full" href="/customer/login">Sign in to my account</a>
+                <a class="btn-ghost btn-full" href="/customer/signup">Create a new account</a>
+                <button class="btn-ghost btn-full" onclick="closeModal('login-required-modal')" style="border:none;color:var(--muted);">Continue browsing</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="toast" class="toast hidden"></div>
 </body>
 </html>

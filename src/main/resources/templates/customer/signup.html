@@ -1,23 +1,43 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Customer Signup</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Create Account · VinCommerce</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
 <body>
-  <main class="auth-layout">
+  <header class="auth-footer-bar">
+      <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+      <div class="auth-bar-links">
+          <a href="/">🏠 Home</a>
+          <a href="/customer/login">🛍 Customer</a>
+          <a href="/seller/login">🏬 Seller</a>
+          <a href="/admin/login">⚙️ Admin</a>
+      </div>
+  </header>
+  <main class="auth-layout" style="padding-top:48px;">
     <section class="auth-panel">
       <div class="auth-card">
         <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
-        <h1>Create customer account</h1>
-        <p>Start shopping with an isolated cart and order history.</p>
-        <div class="form-field"><label>Full name</label><input id="fullName" placeholder="Vinayak Mittal"></div>
-        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="customer@email.com"></div>
-        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="new-password" placeholder="Minimum 8 characters"></div>
-        <div class="form-field"><label>Phone number</label><input id="phoneNumber" placeholder="Optional"></div>
-        <button class="btn-primary btn-full" onclick="signupCustomer()">Create customer account</button>
+        <div class="role-badge"><span class="role-icon">🛒</span> Customer</div>
+        <h1>Create your account</h1>
+        <p>Start shopping with a private cart, order tracking, and coupon savings.</p>
+        <div class="form-field"><label for="fullName">Full name</label><input id="fullName" placeholder="e.g. Vinayak Mittal" autocomplete="name"></div>
+        <div class="form-field"><label for="email">Email address</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+        <div class="form-field"><label for="password">Password</label><div class="password-wrap"><input id="password" type="password" autocomplete="new-password" placeholder="Minimum 8 characters"><button type="button" id="toggle-password" class="password-toggle" onclick="togglePassword()" title="Show password">👁</button></div><span class="field-hint">At least 8 characters with a letter and a number</span></div>
+        <div class="form-field"><label for="phoneNumber">Phone number <span class="muted" style="font-weight:400">(optional)</span></label><input id="phoneNumber" type="tel" placeholder="+91 9876543210" autocomplete="tel"></div>
+        <button id="btn-signup" class="btn-primary btn-full" onclick="signupCustomer()">Create account</button>
         <div id="auth-message" class="alert hidden"></div>
-        <p class="small muted">Already have an account? <a class="text-link" th:href="@{/customer/login}">Sign in</a></p>
+        <div class="auth-footer">
+          <p>Already have an account? <a class="text-link" th:href="@{/customer/login}">Sign in →</a></p>
+        </div>
       </div>
     </section>
-    <section class="auth-art customer"><div class="auth-story"><h2>Browse, save, checkout.</h2><p>Search products from the denormalized product projection and checkout using live cart validation.</p></div></section>
+    <section class="auth-art customer">
+      <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+      <div class="auth-story">
+        <h2>Browse, save, checkout.</h2>
+        <p>Search products from the denormalized product projection and checkout using live cart validation.</p>
+        <div class="auth-feature">🔍 <div><strong>Smart search</strong><span>Filter by category, attributes, and availability across the entire catalog.</span></div></div>
+        <div class="auth-feature">💰 <div><strong>Live pricing</strong><span>Cart is repriced on every load with real-time product and inventory data.</span></div></div>
+      </div>
+    </section>
   </main>
 </body>
 </html>

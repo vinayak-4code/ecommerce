@@ -2,48 +2,118 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Customer Storefront | VinCommerce</title>
+    <title>VinCommerce | Your Store</title>
     <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
     <script defer th:src="@{/js/portal.js}"></script>
 </head>
 <body data-page="customer" onload="initCustomerWorkspace()">
-<div class="workspace customer-workspace">
-    <aside class="sidebar slim">
-        <a class="brand side-brand" href="/">🛍️ VinCommerce</a>
-        <button data-customer-section="shop-section" class="side-link active" onclick="showCustomerSection('shop-section')">Discover</button>
-        <button class="side-link" onclick="openCustomerCart()">Cart <span id="public-cart-count">0</span></button>
-        <button data-customer-section="orders-section" class="side-link" onclick="showCustomerSection('orders-section');loadAndRenderCustomerOrders()">Orders</button>
-        <button data-customer-section="account-section" class="side-link" onclick="showCustomerSection('account-section')">Account</button>
-        <button class="side-link danger" onclick="logoutRole('CUSTOMER')">Logout</button>
-    </aside>
-    <main class="workspace-main">
-        <header class="workspace-topbar">
-            <div><span class="eyebrow">Customer</span><h1>Shopping workspace</h1></div>
-            <div class="header-search compact"><input id="public-search" placeholder="Search products" onkeydown="if(event.key==='Enter') searchPublicCatalog()"><button onclick="searchPublicCatalog()">Search</button></div>
-        </header>
 
-        <section id="shop-section" class="customer-section active">
-            <div class="market-layout">
-                <aside class="filter-panel">
-                    <h3>Categories</h3><div id="public-category-tree" class="tree-list"></div>
-                    <h3>Attributes</h3><div id="public-attribute-filters"></div>
-                    <label class="check-row"><input id="public-instock-only" type="checkbox" onchange="renderPublicCatalog()"> In stock only</label>
-                </aside>
-                <section class="catalog-panel">
-                    <div class="section-title-row"><div><span class="eyebrow">Catalog</span><h2>Browse products</h2><p id="public-result-subtitle" class="muted"></p></div><select id="public-sort" onchange="searchPublicCatalog()"><option value="name|ASC">Name</option><option value="price|ASC">Price low</option><option value="price|DESC">Price high</option><option value="totalAvailableQuantity|DESC">Availability</option></select></div>
-                    <div id="public-product-grid" class="product-grid market-grid"></div>
-                </section>
+<!-- ===== NAVIGATION ===== -->
+<nav class="storefront-nav">
+    <a class="brand" href="/">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:.72rem;font-weight:900;">VC</span>
+        VinCommerce
+    </a>
+    <div class="nav-search">
+        <input id="public-search" placeholder="Search for mobiles, laptops, apparel..." onkeydown="if(event.key==='Enter') searchPublicCatalog()">
+        <button onclick="searchPublicCatalog()">🔍 Search</button>
+    </div>
+    <div class="nav-links">
+        <button data-customer-section="shop-section" class="active" onclick="showCustomerSection('shop-section')">🏪 Shop</button>
+        <button data-customer-section="deals-section" onclick="showCustomerSection('deals-section')">🏷️ Deals</button>
+        <button data-customer-section="orders-section" onclick="showCustomerSection('orders-section');loadAndRenderCustomerOrders()">📦 Orders</button>
+        <button data-customer-section="account-section" onclick="showCustomerSection('account-section')">👤 Account</button>
+        <button class="cart-btn" onclick="openCustomerCart()">🛒 Cart <span class="cart-count" id="public-cart-count">0</span></button>
+    </div>
+</nav>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="storefront-body">
+
+    <!-- SHOP SECTION -->
+    <section id="shop-section" class="customer-section active">
+        <div class="market-layout">
+            <aside class="filter-panel">
+                <h3>📁 Categories</h3>
+                <div id="public-category-tree" class="tree-list"></div>
+                <h3>🔧 Attributes</h3>
+                <div id="public-attribute-filters"></div>
+                <label class="check-row">
+                    <input id="public-instock-only" type="checkbox" onchange="renderPublicCatalog()"> In stock only
+                </label>
+                <button class="btn-ghost btn-full btn-sm" style="margin-top:12px" onclick="clearPublicFilters()">✕ Clear all filters</button>
+            </aside>
+            <section class="catalog-panel">
+                <div class="section-title-row">
+                    <div>
+                        <span class="eyebrow">Catalog</span>
+                        <h2>Products for you</h2>
+                        <p id="public-result-subtitle" class="muted small"></p>
+                    </div>
+                    <select id="public-sort" onchange="searchPublicCatalog()" style="max-width:200px;">
+                        <option value="name|ASC">Name: A → Z</option>
+                        <option value="price|ASC">Price: Low → High</option>
+                        <option value="price|DESC">Price: High → Low</option>
+                        <option value="totalAvailableQuantity|DESC">Most Available</option>
+                    </select>
+                </div>
+                <div id="public-product-grid" class="product-grid market-grid"></div>
+            </section>
+        </div>
+    </section>
+
+    <!-- DEALS SECTION -->
+    <section id="deals-section" class="customer-section">
+        <div class="section-title-row">
+            <div>
+                <span class="eyebrow">Promotions</span>
+                <h2>🎉 Deals & Coupons</h2>
+                <p class="muted small">Browse available coupons and apply them at checkout for instant savings!</p>
             </div>
-        </section>
+        </div>
+        <div id="customer-coupon-tickets" class="coupon-tickets"></div>
+    </section>
 
-        <section id="orders-section" class="customer-section"><div class="section-title-row"><div><span class="eyebrow">Orders</span><h2>Your orders</h2></div><button onclick="loadAndRenderCustomerOrders()">Refresh</button></div><div id="customer-orders-table"></div></section>
-        <section id="account-section" class="customer-section"><div id="customer-account-card"></div></section>
-    </main>
+    <!-- ORDERS SECTION -->
+    <section id="orders-section" class="customer-section">
+        <div class="section-title-row">
+            <div>
+                <span class="eyebrow">Order history</span>
+                <h2>📦 Your orders</h2>
+            </div>
+            <button class="btn-ghost btn-sm" onclick="loadAndRenderCustomerOrders()">↻ Refresh</button>
+        </div>
+        <div id="customer-orders-table"></div>
+    </section>
+
+    <!-- ACCOUNT SECTION -->
+    <section id="account-section" class="customer-section">
+        <div id="customer-account-card"></div>
+    </section>
 </div>
 
-<div id="cart-drawer" class="drawer right-drawer"><div class="drawer-header"><h2>Your cart</h2><button onclick="closeDrawer('cart-drawer')">✕</button></div><div id="cart-body" class="drawer-body"></div><div id="cart-coupons" class="drawer-body"></div><div id="cart-summary" class="drawer-footer"></div></div>
+<!-- ===== CART DRAWER ===== -->
+<div id="drawer-backdrop" class="drawer-backdrop" onclick="closeDrawer('cart-drawer')"></div>
+<div id="cart-drawer" class="drawer right-drawer">
+    <div class="drawer-header"><h2>🛒 Your Cart</h2><button onclick="closeDrawer('cart-drawer')">✕</button></div>
+    <div id="cart-body" class="drawer-body"></div>
+    <div id="cart-coupons" class="drawer-body"></div>
+    <div id="cart-summary" class="drawer-footer"></div>
+</div>
+
+<!-- ===== MODALS ===== -->
 <div id="product-modal" class="modal"><div class="modal-card product-modal-card"><button class="modal-x" onclick="closeModal('product-modal')">✕</button><div id="product-modal-body"></div></div></div>
-<div id="login-required-modal" class="modal"><div class="modal-card small-modal"><button class="modal-x" onclick="closeModal('login-required-modal')">✕</button><h2>Login required</h2><p id="login-required-message" class="muted">Please login to continue.</p><a class="btn-primary" href="/customer/login">Login</a></div></div>
+<div id="login-required-modal" class="modal">
+    <div class="modal-card small-modal">
+        <button class="modal-x" onclick="closeModal('login-required-modal')">✕</button>
+        <div style="text-align:center;padding:12px 0;">
+            <div style="font-size:3rem;margin-bottom:12px;">🔐</div>
+            <h2 style="margin:0 0 8px;">Login required</h2>
+            <p id="login-required-message" class="muted" style="margin:0 0 24px;">Please login to continue.</p>
+            <a class="btn-primary btn-full" href="/customer/login">Sign in</a>
+        </div>
+    </div>
+</div>
 <div id="toast" class="toast hidden"></div>
 </body>
 </html>

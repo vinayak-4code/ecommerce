@@ -1,23 +1,47 @@
 <!doctype html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Product Admin Login</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Product Admin · VinCommerce</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
 <body>
-  <main class="auth-layout">
+  <header class="auth-footer-bar">
+      <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+      <div class="auth-bar-links">
+          <a href="/">🏠 Home</a>
+          <a href="/customer/login">🛍 Customer</a>
+          <a href="/seller/login">🏬 Seller</a>
+          <a href="/admin/login">⚙️ Admin</a>
+      </div>
+  </header>
+  <main class="auth-layout" style="padding-top:48px;">
     <section class="auth-panel">
       <div class="auth-card">
         <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
-        <h1>Product Admin sign in</h1>
-        <p>Use the seeded admin account to govern categories, product attributes, and coupon rules.</p>
-        <div class="form-field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="admin@example.com"></div>
-        <div class="form-field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password1"></div>
-        <button class="btn-primary btn-full" onclick="loginRole('PRODUCT_ADMIN')">Sign in as Product Admin</button>
-        <button class="btn-ghost btn-full" style="margin-top:10px" onclick="fillDemo('PRODUCT_ADMIN')">Use demo credentials</button>
+        <div class="role-badge"><span class="role-icon">🛡</span> Product Admin</div>
+        <h1>Admin sign in</h1>
+        <p>Govern the category tree, product attribute schemas, and coupon promotion rules.</p>
+        <div class="form-field"><label for="email">Email address</label><input id="email" type="email" autocomplete="username" placeholder="admin@example.com"></div>
+        <div class="form-field"><label for="password">Password</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" id="toggle-password" class="password-toggle" onclick="togglePassword()" title="Show password">👁</button></div></div>
+        <button id="btn-login" class="btn-primary btn-full" onclick="loginRole('PRODUCT_ADMIN')">Sign in as Admin</button>
+        <div class="divider">or</div>
+        <button class="btn-ghost btn-full" onclick="fillDemo('PRODUCT_ADMIN')">⚡ Fill demo credentials</button>
         <div id="auth-message" class="alert hidden"></div>
-        <p class="small muted">Admin signup is disabled by design. Demo: <span class="kbd">admin@example.com / Password1</span></p>
+        <div class="demo-creds">
+          <p>🔑 Demo credentials</p>
+          <div class="demo-hint"><span class="kbd">admin@example.com</span> / <span class="kbd">Password1</span></div>
+        </div>
+        <div class="auth-footer">
+          <p class="muted small">Admin signup is disabled by design. Only seeded admin accounts can access this portal.</p>
+        </div>
       </div>
     </section>
-    <section class="auth-art">
-      <div class="auth-story"><h2>Catalog governance starts here.</h2><p>Product Admin defines the category tree, mandatory attributes, customer-visible fields, and promotional constraints before sellers list products.</p><div class="auth-feature">🧩 <div><strong>Category-aware attributes</strong><br><span>Mobile phones, laptops, and apparel each get their own schema.</span></div></div><div class="auth-feature">🏷 <div><strong>Controlled coupons</strong><br><span>Define live dates, expiry, flat discounts, and capped percentage discounts.</span></div></div></div>
+    <section class="auth-art admin">
+      <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+      <div class="auth-story">
+        <h2>Catalog governance starts here.</h2>
+        <p>Product Admin defines the category tree, mandatory attributes, customer-visible fields, and promotional constraints before sellers list products.</p>
+        <div class="auth-feature">🧩 <div><strong>Category-aware attributes</strong><span>Mobile phones, laptops, and apparel each get their own schema with type-safe validation.</span></div></div>
+        <div class="auth-feature">🏷 <div><strong>Controlled coupons</strong><span>Define live dates, expiry, flat discounts, capped percentage discounts, and category restrictions.</span></div></div>
+        <div class="auth-feature">🔒 <div><strong>Governance-first</strong><span>Sellers can only list products using admin-approved categories and attribute schemas.</span></div></div>
+      </div>
     </section>
   </main>
 </body>
