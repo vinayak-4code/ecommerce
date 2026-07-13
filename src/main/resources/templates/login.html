@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign In · VinCommerce</title>
+    <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
+    <script defer th:src="@{/js/ecommerce-ui.js}"></script>
+</head>
+<body>
+<header class="auth-footer-bar">
+    <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+    <div class="auth-bar-links">
+        <a href="/">🏠 Home</a>
+        <a href="/customer/login">🛍 Customer</a>
+        <a href="/seller/login">🏬 Seller</a>
+        <a href="/admin/login">⚙️ Admin</a>
+    </div>
+</header>
+<main class="auth-layout" style="padding-top:48px;">
+    <section class="auth-panel">
+        <div class="auth-card">
+            <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+            <h1>Sign in to your account</h1>
+            <p>Access your dashboard based on your role — customer, seller, or admin.</p>
+
+            <div class="auth-tabs" style="display:flex;gap:6px;margin-bottom:20px">
+                <button class="pill-tab active" onclick="switchLoginTab('CUSTOMER')">🛒 Customer</button>
+                <button class="pill-tab" onclick="switchLoginTab('SELLER')">🏬 Seller</button>
+                <button class="pill-tab" onclick="switchLoginTab('PRODUCT_ADMIN')">🛡 Admin</button>
+            </div>
+
+            <div id="login-form">
+                <div class="form-field"><label for="login-email">Email address</label><input id="login-email" type="email" placeholder="you@example.com" required></div>
+                <div class="form-field"><label for="login-password">Password</label><input id="login-password" type="password" placeholder="Your password" required></div>
+                <input type="hidden" id="login-role" value="CUSTOMER">
+                <button class="btn-primary btn-full" onclick="loginFromPage()">Sign in</button>
+            </div>
+
+            <div id="login-output" class="status-box"></div>
+
+            <div class="demo-creds">
+                <p>🔑 Demo credentials <span class="muted small" style="font-weight:400">(Password: <span class="kbd">Password1</span>)</span></p>
+                <div class="demo-hint" style="flex-direction:column;gap:4px;align-items:flex-start">
+                    <span>🛡 <span class="kbd">admin@example.com</span></span>
+                    <span>🏬 <span class="kbd">seller@example.com</span></span>
+                    <span>🛒 <span class="kbd">customer@example.com</span></span>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                <p>Don't have an account? <a class="text-link" th:href="@{/signup}">Create one →</a></p>
+                <p style="margin-top:6px"><a class="text-link" th:href="@{/}" style="font-weight:400">← Back to storefront</a></p>
+            </div>
+        </div>
+    </section>
+    <section class="auth-art customer">
+        <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+        <div class="auth-story">
+            <h2>Enterprise commerce, simplified.</h2>
+            <p>Three roles, one platform — customer shopping, seller operations, and admin governance working together seamlessly.</p>
+            <div class="auth-feature">🛒 <div><strong>Customer</strong><span>Browse, cart, coupon, and order with JWT-secured private data.</span></div></div>
+            <div class="auth-feature">🏬 <div><strong>Seller</strong><span>Products, inventory, warehouses, promotions, and order fulfillment.</span></div></div>
+            <div class="auth-feature">🛡 <div><strong>Admin</strong><span>Category tree, attribute schemas, and coupon governance.</span></div></div>
+        </div>
+    </section>
+</main>
+</body>
+</html>
+

@@ -1,0 +1,12 @@
+package com.acme.ecommerce.common.exception;
+
+public enum ErrorCode {
+    VALIDATION_FAILED,
+    AUTHENTICATION_FAILED,
+    ACCESS_DENIED,
+    RESOURCE_NOT_FOUND,
+    DUPLICATE_RESOURCE,
+    BUSINESS_RULE_VIOLATION,
+    INSUFFICIENT_INVENTORY,
+    COUPON_NOT_APPLICABLE
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign Up · VinCommerce</title>
+    <link rel="stylesheet" th:href="@{/css/ecommerce.css}">
+    <script defer th:src="@{/js/ecommerce-ui.js}"></script>
+</head>
+<body>
+<header class="auth-footer-bar">
+    <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+    <div class="auth-bar-links">
+        <a href="/">🏠 Home</a>
+        <a href="/customer/login">🛍 Customer</a>
+        <a href="/seller/login">🏬 Seller</a>
+        <a href="/admin/login">⚙️ Admin</a>
+    </div>
+</header>
+<main class="auth-layout" style="padding-top:48px;">
+    <section class="auth-panel">
+        <div class="auth-card">
+            <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+            <h1>Create your account</h1>
+            <p>Register as a Customer to shop, or as a Seller to list products.</p>
+
+            <div class="auth-tabs" style="display:flex;gap:6px;margin-bottom:20px">
+                <button class="pill-tab active" onclick="switchSignupTab('customer')">🛒 Customer</button>
+                <button class="pill-tab" onclick="switchSignupTab('seller')">🏬 Seller</button>
+            </div>
+
+            <div id="signup-customer-form">
+                <div class="form-field"><label for="signup-customer-email">Email address</label><input id="signup-customer-email" type="email" placeholder="you@example.com" required></div>
+                <div class="form-field"><label for="signup-customer-password">Password</label><input id="signup-customer-password" type="password" placeholder="Minimum 8 characters" required><span class="field-hint">At least 8 characters with a letter and a number</span></div>
+                <div class="form-field"><label for="signup-customer-fullname">Full name</label><input id="signup-customer-fullname" type="text" placeholder="John Doe" required></div>
+                <div class="form-field"><label for="signup-customer-phone">Phone number <span class="muted" style="font-weight:400">(optional)</span></label><input id="signup-customer-phone" type="tel" placeholder="+91 9876543210"></div>
+                <button class="btn-primary btn-full" onclick="signupCustomer()">Create customer account</button>
+            </div>
+
+            <div id="signup-seller-form" style="display:none;">
+                <div class="form-field"><label for="signup-seller-email">Business email</label><input id="signup-seller-email" type="email" placeholder="business@company.com" required></div>
+                <div class="form-field"><label for="signup-seller-password">Password</label><input id="signup-seller-password" type="password" placeholder="Minimum 8 characters" required><span class="field-hint">At least 8 characters with a letter and a number</span></div>
+                <div class="form-field"><label for="signup-seller-business">Business name</label><input id="signup-seller-business" type="text" placeholder="Acme Electronics Pvt Ltd" required></div>
+                <div class="form-field"><label for="signup-seller-contact">Contact number <span class="muted" style="font-weight:400">(optional)</span></label><input id="signup-seller-contact" type="tel" placeholder="+91 9876543210"></div>
+                <button class="btn-primary btn-full" onclick="signupSeller()">Create seller account</button>
+            </div>
+
+            <div id="signup-output" class="status-box"></div>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a class="text-link" th:href="@{/login}">Sign in →</a></p>
+                <p style="margin-top:6px"><a class="text-link" th:href="@{/}" style="font-weight:400">← Back to storefront</a></p>
+            </div>
+        </div>
+    </section>
+    <section class="auth-art seller">
+        <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+        <div class="auth-story">
+            <h2>Join the marketplace.</h2>
+            <p>Whether you're a shopper or a seller, VinCommerce gives you the tools you need.</p>
+            <div class="auth-feature">🛒 <div><strong>For shoppers</strong><span>Browse products, add to cart, apply coupons, and place orders instantly.</span></div></div>
+            <div class="auth-feature">🏬 <div><strong>For sellers</strong><span>List products, manage inventory, enroll in promotions, and fulfill orders.</span></div></div>
+        </div>
+    </section>
+</main>
+</body>
+</html>
+

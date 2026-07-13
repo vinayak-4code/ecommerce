@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Customer Login · VinCommerce</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <header class="auth-footer-bar">
+      <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+      <div class="auth-bar-links">
+          <a href="/">🏠 Home</a>
+          <a href="/customer/login">🛍 Customer</a>
+          <a href="/seller/login">🏬 Seller</a>
+          <a href="/admin/login">⚙️ Admin</a>
+      </div>
+  </header>
+  <main class="auth-layout" style="padding-top:48px;">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <div class="role-badge"><span class="role-icon">🛒</span> Customer Portal</div>
+        <h1>Welcome back</h1>
+        <p>Sign in to browse products, manage your cart, apply coupons, and place orders.</p>
+        <div class="form-field"><label for="email">Email address</label><input id="email" type="email" autocomplete="username" placeholder="customer@example.com"></div>
+        <div class="form-field"><label for="password">Password</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" id="toggle-password" class="password-toggle" onclick="togglePassword()" title="Show password">👁</button></div></div>
+        <button id="btn-login" class="btn-primary btn-full" onclick="loginRole('CUSTOMER')">Sign in</button>
+        <div class="divider">or</div>
+        <button class="btn-ghost btn-full" onclick="fillDemo('CUSTOMER')">⚡ Fill demo credentials</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <div class="auth-footer">
+          <p>New to VinCommerce? <a class="text-link" th:href="@{/customer/signup}">Create an account →</a></p>
+        </div>
+      </div>
+    </section>
+    <section class="auth-art customer">
+      <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+      <div class="auth-story">
+        <h2>A clean shopping journey.</h2>
+        <p>Cart totals are re-priced from live product and inventory data every time the cart loads.</p>
+        <div class="auth-feature">🛒 <div><strong>Private cart</strong><span>The backend derives cart ownership from JWT — never from a customer ID in the request.</span></div></div>
+        <div class="auth-feature">🏷 <div><strong>One coupon per cart</strong><span>Discounts are allocated proportionally across eligible enrolled items.</span></div></div>
+        <div class="auth-feature">📦 <div><strong>Order tracking</strong><span>Follow your order from placement through seller shipment to delivery.</span></div></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

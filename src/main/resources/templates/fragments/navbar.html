@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<!-- Shared top navigation bar fragment -->
+<div th:fragment="navbar(role, pageTitle)" class="top-nav">
+    <div class="nav-left">
+        <a th:href="@{/}" class="nav-logo">🛍 E-Commerce</a>
+        <span class="nav-divider"></span>
+        <span class="nav-page-title" th:text="${pageTitle}"></span>
+    </div>
+    <div class="nav-center">
+        <a th:href="@{/admin}" th:classappend="${role == 'PRODUCT_ADMIN'} ? 'active' : ''">🛡 Admin</a>
+        <a th:href="@{/seller}" th:classappend="${role == 'SELLER'} ? 'active' : ''">🏬 Seller</a>
+        <a th:href="@{/customer}" th:classappend="${role == 'CUSTOMER'} ? 'active' : ''">🛒 Customer</a>
+    </div>
+    <div class="nav-right">
+        <div id="nav-user-info" class="nav-user-info">
+            <!-- Populated by JS based on auth state -->
+        </div>
+    </div>
+</div>
+
+<!-- Shared sub-navigation tabs fragment -->
+<div th:fragment="subnav" class="sub-nav" id="sub-nav">
+    <!-- Populated by JS based on current page -->
+</div>
+</html>
+

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seller Center · VinCommerce</title><link rel="stylesheet" th:href="@{/css/ecommerce.css}"><script defer th:src="@{/js/auth-pages.js}"></script></head>
+<body>
+  <header class="auth-footer-bar">
+      <a href="/" class="auth-bar-brand"><span>VC</span> VinCommerce</a>
+      <div class="auth-bar-links">
+          <a href="/">🏠 Home</a>
+          <a href="/customer/login">🛍 Customer</a>
+          <a href="/seller/login">🏬 Seller</a>
+          <a href="/admin/login">⚙️ Admin</a>
+      </div>
+  </header>
+  <main class="auth-layout" style="padding-top:48px;">
+    <section class="auth-panel">
+      <div class="auth-card">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">VC</span><span>VinCommerce</span></a>
+        <div class="role-badge"><span class="role-icon">🏬</span> Seller Center</div>
+        <h1>Seller sign in</h1>
+        <p>Manage your product catalog, inventory, promotions, warehouses, and order fulfillment.</p>
+        <div class="form-field"><label for="email">Email address</label><input id="email" type="email" autocomplete="username" placeholder="seller@example.com"></div>
+        <div class="form-field"><label for="password">Password</label><div class="password-wrap"><input id="password" type="password" autocomplete="current-password" placeholder="Enter your password"><button type="button" id="toggle-password" class="password-toggle" onclick="togglePassword()" title="Show password">👁</button></div></div>
+        <button id="btn-login" class="btn-primary btn-full" onclick="loginRole('SELLER')">Sign in</button>
+        <div class="divider">or</div>
+        <button class="btn-ghost btn-full" onclick="fillDemo('SELLER')">⚡ Fill demo credentials</button>
+        <div id="auth-message" class="alert hidden"></div>
+        <div class="auth-footer">
+          <p>New seller? <a class="text-link" th:href="@{/seller/signup}">Create a seller account →</a></p>
+        </div>
+      </div>
+    </section>
+    <section class="auth-art seller">
+      <div class="art-decoration"></div><div class="art-decoration"></div><div class="art-decoration"></div>
+      <div class="auth-story">
+        <h2>Run your storefront operations.</h2>
+        <p>Create category-aware product listings, publish products, update inventory, enroll into coupons, and fulfill customer orders.</p>
+        <div class="auth-feature">📦 <div><strong>Product management</strong><span>Draft, publish, unpublish, and delete — with full attribute schema validation.</span></div></div>
+        <div class="auth-feature">🏷 <div><strong>Coupon enrollment</strong><span>Opt your products into admin-created coupons to boost visibility and sales.</span></div></div>
+        <div class="auth-feature">🚚 <div><strong>Order fulfillment</strong><span>Ship or cancel only your own order lines with isolated seller views.</span></div></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
