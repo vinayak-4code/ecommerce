@@ -23,15 +23,15 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, UU
     List<InventoryItem> findAvailableByProductId(@Param("productId") UUID productId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update InventoryItem i set i.availableQuantity = i.availableQuantity - :quantity, i.reservedQuantity = i.reservedQuantity + :quantity, i.updatedAt = current_timestamp where i.productId = :productId and i.warehouse.id = :warehouseId and i.availableQuantity >= :quantity")
+    @Query(value = "UPDATE inventory_items SET available_quantity = available_quantity - :quantity, reserved_quantity = reserved_quantity + :quantity, updated_at = now() WHERE product_id = :productId AND warehouse_id = :warehouseId AND available_quantity >= :quantity", nativeQuery = true)
     int reserveQuantity(@Param("productId") UUID productId, @Param("warehouseId") UUID warehouseId, @Param("quantity") int quantity);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update InventoryItem i set i.availableQuantity = i.availableQuantity + :quantity, i.reservedQuantity = i.reservedQuantity - :quantity, i.updatedAt = current_timestamp where i.productId = :productId and i.warehouse.id = :warehouseId and i.reservedQuantity >= :quantity")
+    @Query(value = "UPDATE inventory_items SET available_quantity = available_quantity + :quantity, reserved_quantity = reserved_quantity - :quantity, updated_at = now() WHERE product_id = :productId AND warehouse_id = :warehouseId AND reserved_quantity >= :quantity", nativeQuery = true)
     int releaseQuantity(@Param("productId") UUID productId, @Param("warehouseId") UUID warehouseId, @Param("quantity") int quantity);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update InventoryItem i set i.reservedQuantity = i.reservedQuantity - :quantity, i.updatedAt = current_timestamp where i.productId = :productId and i.warehouse.id = :warehouseId and i.reservedQuantity >= :quantity")
+    @Query(value = "UPDATE inventory_items SET reserved_quantity = reserved_quantity - :quantity, updated_at = now() WHERE product_id = :productId AND warehouse_id = :warehouseId AND reserved_quantity >= :quantity", nativeQuery = true)
     int consumeReservedQuantity(@Param("productId") UUID productId, @Param("warehouseId") UUID warehouseId, @Param("quantity") int quantity);
 
     @Query("select coalesce(sum(i.availableQuantity), 0) from InventoryItem i where i.productId = :productId")

@@ -69,6 +69,10 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+tasks.named('processFunctionalTestResources') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 tasks.register('functionalTest', Test) {
     description = 'Runs functional tests.'
     group = 'verification'
