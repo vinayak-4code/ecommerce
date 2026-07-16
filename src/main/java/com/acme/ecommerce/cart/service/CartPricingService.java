@@ -8,7 +8,6 @@ import com.acme.ecommerce.catalog.entity.Product;
 import com.acme.ecommerce.catalog.enums.ProductStatus;
 import com.acme.ecommerce.catalog.repository.ProductRepository;
 import com.acme.ecommerce.common.exception.BusinessException;
-import com.acme.ecommerce.common.exception.ErrorCode;
 import com.acme.ecommerce.common.money.MoneyUtil;
 import com.acme.ecommerce.coupon.entity.Coupon;
 import com.acme.ecommerce.coupon.service.CouponService;
@@ -54,7 +53,13 @@ public class CartPricingService {
             return new CartPricingResult(cart.getId(), List.of(), cart.getCouponCode(), false, MoneyUtil.ZERO, MoneyUtil.ZERO, MoneyUtil.ZERO);
         }
         Map<UUID, Product> products = loadProducts(items);
-        List<LineDraft> lineDrafts = items.stream().map(item -> toLineDraft(item, products.get(item.getProductId()))).toList();
+        List<LineDraft> lineDrafts = items.stream().map(item -> {
+            Product product = products.get(item.getProductId());
+            if (product == null || product.getStatus() != ProductStatus.PUBLISHED) {
+                return toUnavailableLineDraft(item, product);
+            }
+            return toLineDraft(item, product);
+        }).toList();
         BigDecimal subtotal = MoneyUtil.money(lineDrafts.stream().map(LineDraft::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add));
         Map<UUID, BigDecimal> discountsByProduct = allocateDiscount(cart.getCouponCode(), lineDrafts, subtotal);
         BigDecimal totalDiscount = MoneyUtil.money(discountsByProduct.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add));
@@ -72,15 +77,8 @@ public class CartPricingService {
 
     private Map<UUID, Product> loadProducts(List<CartItem> items) {
         Set<UUID> productIds = items.stream().map(CartItem::getProductId).collect(Collectors.toSet());
-        Map<UUID, Product> products = productRepository.findByIdIn(productIds).stream()
+        return productRepository.findByIdIn(productIds).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
-        for (UUID productId : productIds) {
-            Product product = products.get(productId);
-            if (product == null || product.getStatus() != ProductStatus.PUBLISHED) {
-                throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Cart contains unavailable product: " + productId);
-            }
-        }
-        return products;
     }
 
     private LineDraft toLineDraft(CartItem item, Product product) {
@@ -88,6 +86,11 @@ public class CartPricingService {
         long availableQuantity = inventoryService.consolidatedAvailable(product.getId());
         CartItemStockStatus stockStatus = resolveStockStatus(item.getQuantity(), availableQuantity);
         return new LineDraft(item.getProductId(), product.getName(), product.getCategory().getId(), item.getQuantity(), availableQuantity, stockStatus, product.getPrice(), subtotal);
+    }
+
+    private LineDraft toUnavailableLineDraft(CartItem item, Product product) {
+        String name = product != null ? product.getName() : "Unavailable Product";
+        return new LineDraft(item.getProductId(), name, null, item.getQuantity(), 0L, CartItemStockStatus.UNAVAILABLE, MoneyUtil.ZERO, MoneyUtil.ZERO);
     }
 
     private CartItemStockStatus resolveStockStatus(int requestedQuantity, long availableQuantity) {
@@ -119,6 +122,7 @@ public class CartPricingService {
         Set<UUID> productIds = lines.stream().map(LineDraft::productId).collect(Collectors.toSet());
         Set<UUID> enrolledProductIds = couponService.enrolledProductIds(coupon.getId(), productIds);
         List<LineDraft> eligibleLines = lines.stream()
+                .filter(line -> line.categoryId() != null)
                 .filter(line -> enrolledProductIds.contains(line.productId()))
                 .filter(line -> couponService.isCategoryEligible(coupon, line.categoryId()))
                 .toList();

@@ -195,6 +195,10 @@ main { padding-bottom: 80px; }
 /* ===== CART ===== */
 .cart-line { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-md); margin-bottom: 10px; transition: var(--transition); }
 .cart-line:hover { border-color: var(--primary-light); }
+.cart-line-unavailable { background: var(--danger-soft); border-color: var(--danger) !important; opacity: .85; }
+.cart-line-unavailable:hover { border-color: var(--danger) !important; }
+.cart-line-unavailable .cart-thumb { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+.cart-unavailable-notice { font-size: .78rem; color: var(--danger); font-weight: 600; margin-top: 2px; line-height: 1.4; }
 .cart-line > div:nth-child(2) { min-width: 0; overflow: hidden; }
 .cart-line > div:nth-child(2) > strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .85rem; }
 .cart-line > div:nth-child(3) { white-space: nowrap; flex-shrink: 0; }

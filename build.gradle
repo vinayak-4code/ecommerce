@@ -18,6 +18,25 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+
+    functionalTestImplementation.extendsFrom testImplementation
+    functionalTestRuntimeOnly.extendsFrom testRuntimeOnly
+    functionalTestCompileOnly.extendsFrom testCompileOnly
+    functionalTestAnnotationProcessor.extendsFrom testAnnotationProcessor
+}
+
+sourceSets {
+    functionalTest {
+        java {
+            srcDir 'src/functionalTest/java'
+        }
+        resources {
+            srcDir 'src/functionalTest/resources'
+        }
+
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
 }
 
 dependencies {
@@ -40,8 +59,32 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    functionalTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    functionalTestImplementation 'org.springframework.security:spring-security-test'
+    functionalTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.named('processFunctionalTestResources') {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.register('functionalTest', Test) {
+    description = 'Runs functional tests.'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.functionalTest.output.classesDirs
+    classpath = sourceSets.functionalTest.runtimeClasspath
+
+    useJUnitPlatform()
+
+    shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('functionalTest')
 }

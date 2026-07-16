@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:ecommerce;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    url: jdbc:h2:mem:ecommerce_func;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;NON_KEYWORDS=VALUE
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -13,6 +13,8 @@ spring:
     properties:
       hibernate:
         format_sql: false
+        query:
+          validation-enabled: false
   flyway:
     enabled: false
   security:

@@ -5,6 +5,7 @@ import com.acme.ecommerce.common.security.TokenAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,6 +27,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
+@Profile("!test")
 public class SecurityConfig {
     private static final String CATEGORIES_ROOT = ApiPaths.API_V1 + "/categories";
     private static final String COUPONS_ROOT = ApiPaths.API_V1 + "/coupons";
@@ -47,7 +49,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/dashboard", "/admin/**", "/seller/**", "/customer/**", "/signup", "/login", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/", "/dashboard", "/admin/**", "/seller/**", "/customer/**", "/signup", "/login", "/css/**", "/js/**", "/images/**", "favicon.ico").permitAll()
                         .requestMatchers(ApiPaths.AUTH, ApiPaths.ACTUATOR).permitAll()
                         .requestMatchers(HttpMethod.GET, CATEGORIES_ROOT, ApiPaths.CATEGORIES, SEARCH_ROOT, ApiPaths.SEARCH, PRODUCT_DETAILS, COUPONS_ROOT, ApiPaths.COUPONS).permitAll()
 

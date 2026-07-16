@@ -12,7 +12,8 @@ public class UpToPercentOffDiscountStrategy implements DiscountStrategy {
     @Override
     public BigDecimal calculate(BigDecimal eligibleAmount, Coupon coupon) {
         BigDecimal percentageDiscount = MoneyUtil.percentage(eligibleAmount, coupon.getValue());
-        BigDecimal cappedDiscount = coupon.getMaxDiscountAmount() == null || coupon.getMaxDiscountAmount().compareTo(BigDecimal.ZERO) <= 0
+        BigDecimal cappedDiscount = coupon.getMaxDiscountAmount() == null
+                || coupon.getMaxDiscountAmount().compareTo(BigDecimal.ZERO) <= 0
                 ? percentageDiscount
                 : MoneyUtil.min(percentageDiscount, MoneyUtil.money(coupon.getMaxDiscountAmount()));
         return MoneyUtil.min(cappedDiscount, eligibleAmount);

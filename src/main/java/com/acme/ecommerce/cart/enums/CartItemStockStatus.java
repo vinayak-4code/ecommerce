@@ -4,5 +4,7 @@ package com.acme.ecommerce.cart.enums;
 public enum CartItemStockStatus {
     IN_STOCK,
     OUT_OF_STOCK,
-    INSUFFICIENT_STOCK
+    INSUFFICIENT_STOCK,
+    /** Product was deleted or unpublished after being added to the cart. */
+    UNAVAILABLE
 }
