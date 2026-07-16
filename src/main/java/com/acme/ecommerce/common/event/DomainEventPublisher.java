@@ -11,18 +11,11 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class DomainEventPublisher {
-    private final OutboxEventRepository outboxEventRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final ObjectMapper objectMapper;
 
     public void publish(UUID aggregateId, String aggregateType, DomainEventType eventType, Object payload) {
         String payloadJson = toJson(payload);
-        OutboxEvent outboxEvent = new OutboxEvent();
-        outboxEvent.setAggregateId(aggregateId);
-        outboxEvent.setAggregateType(aggregateType);
-        outboxEvent.setEventType(eventType);
-        outboxEvent.setPayloadJson(payloadJson);
-        outboxEventRepository.save(outboxEvent);
         applicationEventPublisher.publishEvent(new DomainEventEnvelope(aggregateId, aggregateType, eventType, payloadJson));
     }
 

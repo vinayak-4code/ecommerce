@@ -107,7 +107,6 @@ This guide explains the important classes and the kind of example each class sup
 | `GlobalExceptionHandler` | Converts exceptions to consistent API errors. | Business exception returns JSON error body. |
 | `MoneyUtil` | Central money rounding and percentage math. | Discount allocation uses scale 2. |
 | `DomainEventPublisher` | Saves events to outbox and publishes in-process events. | `PRODUCT_UPDATED` updates search projection. |
-| `OutboxEvent` | Persisted event record for future Kafka publisher. | Production publisher can read `outbox_events`. |
 | `DashboardController` | Simple Thymeleaf journey selector. | Links to `/admin`, `/seller`, and `/customer`. |
 | `AdminUiController` | Product Admin Thymeleaf page. | Category/coupon setup through Browser -> REST API calls. |
 | `SellerUiController` | Seller Thymeleaf page. | Warehouse/product/inventory/coupon enrollment flow. |

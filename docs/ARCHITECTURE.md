@@ -251,7 +251,6 @@ Shared infrastructure:
 - Exception handling
 - Money utilities
 - Domain event envelope
-- Outbox persistence
 - Hikari data source configuration
 
 ## Data consistency

@@ -55,7 +55,6 @@
 | 3 | **Live Cart Pricing** | Prices recalculated from source-of-truth on every cart view |
 | 4 | **Proportional Coupon Allocation** | Cart-level discounts distributed fairly across eligible order lines |
 | 5 | **Product Versioning** | JSON snapshots (last 50) enable instant rollback without audit infra |
-| 6 | **Domain Event Outbox** | Kafka-ready event pattern using DB outbox + in-process dispatch |
 | 7 | **Search Projection** | Denormalized read model mirrors Elasticsearch document shape |
 | 8 | **Flyway Migrations** | Schema + seed data versioned — reproducible from scratch every time |
 
@@ -336,7 +335,6 @@ src/main/resources/
 | **Opaque tokens over stateless JWT** | Server-side storage enables instant revocation without blacklist infra |
 | **Cart stores IDs only** | Prices computed live — never stale, always consistent with catalogue |
 | **Conditional SQL for inventory** | `WHERE available_qty >= :qty` prevents oversell at DB level — no distributed locks |
-| **Outbox event pattern** | Guarantees event delivery; trivial Kafka upgrade path |
 | **Search projection in PostgreSQL** | Same document shape as Elasticsearch; swap later without business logic changes |
 | **One coupon per cart** | Simplifies proportional discount allocation across lines |
 | **Product JSON snapshots** | Last 50 versions stored — rollback without separate audit infrastructure |
